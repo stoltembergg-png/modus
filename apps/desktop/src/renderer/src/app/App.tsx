@@ -1123,22 +1123,33 @@ export function App() {
 }
 
 /**
- * 顶部 menubar 行 —— 整行 44px 高，自绘 titlebar：
- *   - 左侧 BrandMark + File/Edit/View/Help（menubar 区，app-drag）
- *   - 右侧 WindowControls 自绘 min/max/close（无 native overlay，无越界）
- * 这样 hover 命中区域完全由 CSS 控制，永远不会超出 menubar 高度。
+ * Top chrome strip (44px):
+ *   - macOS: native traffic lights only; File/Edit/View/Help live in the system menu bar
+ *   - Windows/Linux: frameless titlebar + in-window menu labels + WindowControls
  */
 function MenuBar() {
+  const isMac = window.modus?.app.platform === "darwin";
+
   return (
-    <div className="app-drag flex h-11 shrink-0 items-center bg-panel">
-      <div className="flex flex-1 items-center gap-0.5 pl-2.5">
+    <div
+      className={cn(
+        "app-drag flex h-11 shrink-0 items-center bg-panel",
+        // Clear native traffic lights (positioned at ~14,14 in main-window).
+        isMac && "pl-[76px]",
+      )}
+    >
+      <div className={cn("flex flex-1 items-center gap-0.5", !isMac && "pl-2.5")}>
         <BrandMark />
-        <MenuItem>File</MenuItem>
-        <MenuItem>Edit</MenuItem>
-        <MenuItem>View</MenuItem>
-        <MenuItem>Help</MenuItem>
+        {isMac ? null : (
+          <>
+            <MenuItem>File</MenuItem>
+            <MenuItem>Edit</MenuItem>
+            <MenuItem>View</MenuItem>
+            <MenuItem>Help</MenuItem>
+          </>
+        )}
       </div>
-      <WindowControls />
+      {isMac ? null : <WindowControls />}
     </div>
   );
 }

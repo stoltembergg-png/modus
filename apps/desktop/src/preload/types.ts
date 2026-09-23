@@ -94,6 +94,8 @@ export type DesignModeTheme = {
 
 export type ModusApi = {
   app: {
+    /** Host OS platform (`darwin` | `win32` | `linux` …). Sync — set at preload time. */
+    platform: string;
     version(): Promise<string>;
     securityState(): Promise<SecurityState>;
     startupMetric(input: StartupMetricInput): Promise<void>;

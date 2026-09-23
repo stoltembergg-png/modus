@@ -5,6 +5,7 @@ import { registerAppIpc } from "./ipc/register-app-ipc";
 import { disposeAllMcp } from "./mcp/mcp-service";
 import { createStartupTimeline } from "./startup/startup-timeline";
 import { shutdownTerminals } from "./terminal/terminal-service";
+import { installApplicationMenu } from "./windows/application-menu";
 import { createMainWindow } from "./windows/main-window";
 
 let mainWindow: BrowserWindowType | null = null;
@@ -41,6 +42,7 @@ if (!app.requestSingleInstanceLock()) {
     .whenReady()
     .then(() => {
       startupTimeline.mark("main.electron-ready");
+      installApplicationMenu();
       startRemoteModelCatalog(() => {
         for (const window of BrowserWindow.getAllWindows()) {
           window.webContents.send(IPC_CHANNELS.modelCatalogChanged);

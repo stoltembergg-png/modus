@@ -34,6 +34,8 @@ export function createMainWindow({
   const width = Math.min(1180, workArea.width);
   const height = Math.min(760, workArea.height);
 
+  const isMac = process.platform === "darwin";
+
   const window = new BrowserWindow({
     x: workArea.x + Math.round((workArea.width - width) / 2),
     y: workArea.y + Math.round((workArea.height - height) / 2),
@@ -45,12 +47,17 @@ export function createMainWindow({
     icon: appIconPath,
     backgroundColor: "#131314",
     show: true,
-    // 彻底放弃 Windows native window controls overlay —— 它的 caption buttons 绘制 + hover 命中区
-    // 由系统决定，不严格遵循 titleBarOverlay.height，会"伸出" menubar。
-    // 改用 frame: false 完全自绘 titlebar：renderer 内 MenuBar + WindowControls，通过 IPC 调
-    // win.minimize / win.maximize / win.unmaximize / win.close。
-    // thickFrame: true（默认）保留 Windows 的 resize handle 与窗口阴影。
-    frame: false,
+    // macOS: native traffic lights via hiddenInset (aligned with 44px menubar).
+    // Windows/Linux: frameless + custom WindowControls — avoids titleBarOverlay
+    // caption hit-targets that spill past the menubar height.
+    ...(isMac
+      ? {
+          titleBarStyle: "hiddenInset" as const,
+          trafficLightPosition: { x: 14, y: 14 },
+        }
+      : {
+          frame: false,
+        }),
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
