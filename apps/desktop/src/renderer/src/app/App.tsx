@@ -1123,9 +1123,9 @@ export function App() {
 }
 
 /**
- * 顶部 menubar 行 —— 整行 44px 高：
- *   - macOS: traffic lights nativos (hiddenInset); só BrandMark + menus à direita deles
- *   - Windows/Linux: titlebar frameless + WindowControls min/max/close à direita
+ * Top chrome strip (44px):
+ *   - macOS: native traffic lights only; File/Edit/View/Help live in the system menu bar
+ *   - Windows/Linux: frameless titlebar + in-window menu labels + WindowControls
  */
 function MenuBar() {
   const isMac = window.modus?.app.platform === "darwin";
@@ -1140,10 +1140,14 @@ function MenuBar() {
     >
       <div className={cn("flex flex-1 items-center gap-0.5", !isMac && "pl-2.5")}>
         <BrandMark />
-        <MenuItem>File</MenuItem>
-        <MenuItem>Edit</MenuItem>
-        <MenuItem>View</MenuItem>
-        <MenuItem>Help</MenuItem>
+        {isMac ? null : (
+          <>
+            <MenuItem>File</MenuItem>
+            <MenuItem>Edit</MenuItem>
+            <MenuItem>View</MenuItem>
+            <MenuItem>Help</MenuItem>
+          </>
+        )}
       </div>
       {isMac ? null : <WindowControls />}
     </div>
