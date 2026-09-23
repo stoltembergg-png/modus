@@ -19,8 +19,8 @@ permissions:
 jobs:
   package-mac:
     name: build · package (unsigned)
-    runs-on: macos-latest
-    timeout-minutes: 45
+    runs-on: macos-14
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -38,13 +38,22 @@ jobs:
       - name: Build PTY host
         run: npm --workspace @modus/desktop run build:pty
 
+      - name: Verify Electron binary
+        run: |
+          node -e "console.log('electron=', require('electron'))"
+          ls -lah node_modules/electron/dist || ls -lah apps/desktop/node_modules/electron/dist || true
+
       - name: Build Electron app
-        run: npm --workspace @modus/desktop exec electron-vite build
+        env:
+          # Large renderer (Monaco/Mermaid) can abort under default heap on GHA mac runners.
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm --workspace @modus/desktop exec -- electron-vite build
 
       - name: Package macOS (unsigned)
         env:
           # Test compile only — no Developer ID / notarization in this workflow.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          NODE_OPTIONS: --max-old-space-size=8192
         run: npm --workspace @modus/desktop run package:mac -- --publish never
 
       - name: List dist
