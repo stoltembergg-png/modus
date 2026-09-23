@@ -11,6 +11,7 @@ import type { ModusApi, SecurityState } from "./types";
 
 const api: ModusApi = {
   app: {
+    platform: process.platform,
     version: () => ipcRenderer.invoke("app:version") as Promise<string>,
     securityState: () => ipcRenderer.invoke("app:security-state") as Promise<SecurityState>,
     startupMetric: (input) => ipcRenderer.invoke("app:startup-metric", input),

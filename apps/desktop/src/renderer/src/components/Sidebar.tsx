@@ -3,18 +3,15 @@ import {
   IconArchive,
   IconArchiveOff,
   IconChevronRight,
-  IconClock,
   IconDots,
   IconEdit,
   IconFolder,
   IconFolderOpen,
   IconFolderPlus,
-  IconGridDots,
   IconLayoutSidebar,
   IconPencil,
   IconPin,
   IconPinnedOff,
-  IconSearch,
   IconSettings,
   IconTrash,
   IconX,
@@ -186,9 +183,6 @@ export function Sidebar({
           >
             New chat
           </NavRow>
-          <NavRow icon={<IconSearch size={SB_ICON} stroke={SB_STROKE} />}>Search</NavRow>
-          <NavRow icon={<IconGridDots size={SB_ICON} stroke={SB_STROKE} />}>Plugins</NavRow>
-          <NavRow icon={<IconClock size={SB_ICON} stroke={SB_STROKE} />}>Automations</NavRow>
         </div>
 
         <div
