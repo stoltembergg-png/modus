@@ -30,7 +30,7 @@ import {
   IconWorld,
   IconX,
 } from "@tabler/icons-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { joinCommandLine, splitCommandLine } from "../../../../shared/command-line";
 import type {
@@ -53,6 +53,7 @@ import type {
   WorkspaceInfo,
 } from "../../../../shared/contracts";
 import { CollapsibleMotion } from "../../components/ui/CollapsibleMotion";
+import { ContentTransition } from "../../components/ui/ContentTransition";
 import { ShinyText } from "../../components/ui/ShinyText";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { cn } from "../../lib/cn";
@@ -102,6 +103,9 @@ export function SettingsPanel({
   workspaceCwd,
   workspaces = [],
 }: SettingsPanelProps) {
+  const reduceMotion = useReducedMotion();
+  const closeStartedRef = useRef(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string | undefined>();
   const [detail, setDetail] = useState<ModelProviderDetail | undefined>();
   const [detailLoading, setDetailLoading] = useState(false);
@@ -128,6 +132,14 @@ export function SettingsPanel({
     (provider) => !connected.some((item) => item.id === provider.id),
   );
   const currentProvider = providers.find((provider) => provider.id === selectedProvider);
+
+  const closeSettings = (): void => {
+    if (closeStartedRef.current) {
+      return;
+    }
+    closeStartedRef.current = true;
+    setIsClosing(true);
+  };
 
   useEffect(
     () => () => {
@@ -443,17 +455,33 @@ export function SettingsPanel({
   }, [authOperation?.id, onRefresh]);
 
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden bg-panel">
+    <m.div
+      animate={isClosing ? { opacity: 0, y: -3 } : { opacity: 1, y: 0 }}
+      className="flex min-h-0 flex-1 overflow-hidden bg-panel"
+      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+      aria-hidden={isClosing}
+      inert={isClosing}
+      onAnimationComplete={() => {
+        if (isClosing) {
+          onClose();
+        }
+      }}
+      style={{ pointerEvents: isClosing ? "none" : "auto" }}
+      transition={{ duration: reduceMotion ? 0 : 0.14, ease: [0.22, 1, 0.36, 1] }}
+    >
       <SettingsSidebar
         activeSection={activeSection}
-        onBack={onClose}
+        onBack={closeSettings}
         onQueryChange={setSettingsQuery}
         onSectionChange={setActiveSection}
         query={settingsQuery}
       />
 
       <main className="scroll-thin min-w-0 flex-1 overflow-y-auto border-hairline-strong border-l bg-canvas">
-        <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-10 pt-16 pb-12">
+        <ContentTransition
+          className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-10 pt-16 pb-12"
+          transitionKey={activeSection}
+        >
           {activeSection === "general" ? (
             <GeneralSettingsPanel cwd={workspaceCwd} workspaces={workspaces} />
           ) : null}
@@ -550,9 +578,9 @@ export function SettingsPanel({
               popular={popular}
             />
           ) : null}
-        </div>
+        </ContentTransition>
       </main>
-    </div>
+    </m.div>
   );
 }
 
