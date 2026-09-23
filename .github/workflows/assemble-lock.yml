@@ -15,36 +15,84 @@ jobs:
           ref: cursor/cleanup-maintainability-67ea
           fetch-depth: 0
           persist-credentials: true
-      - name: Surgically refresh package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19"
+      - name: Strip stubs then refresh package-lock.json
         run: |
           set -euxo pipefail
           python3 <<'PY'
           import json
           from pathlib import Path
-          path = Path('package-lock.json')
+
+          STUBS = {
+              "node_modules/@modus/agent-protocol",
+              "node_modules/@modus/config",
+              "node_modules/@modus/core",
+              "node_modules/@modus/ui",
+          }
+
+          path = Path("package-lock.json")
           data = json.loads(path.read_text())
-          pkgs = data['packages']
-          root = pkgs.setdefault('', {})
-          root['workspaces'] = ['apps/*']
-          desk = pkgs.get('apps/desktop', {})
-          deps = desk.get('dependencies', {})
-          deps.pop('drizzle-orm', None)
-          to_del = [
-              k for k in list(pkgs)
-              if k.startswith('packages/') or 'drizzle' in k
-          ]
+          pkgs = data["packages"]
+          root = pkgs.setdefault("", {})
+          root["workspaces"] = ["apps/*"]
+          desk = pkgs.get("apps/desktop", {})
+          deps = desk.get("dependencies", {})
+          deps.pop("drizzle-orm", None)
+
+          to_del = []
+          for k, v in list(pkgs.items()):
+              resolved = ""
+              if isinstance(v, dict):
+                  resolved = str(v.get("resolved") or "")
+              if (
+                  k.startswith("packages/")
+                  or "drizzle" in k
+                  or k in STUBS
+                  or resolved.startswith("packages/")
+              ):
+                  to_del.append(k)
+
           for k in to_del:
               del pkgs[k]
-          text = json.dumps(data, indent=2) + '\n'
-          assert 'drizzle' not in text
-          assert not [k for k in pkgs if k.startswith('packages/')]
+
+          text = json.dumps(data, indent=2) + "\n"
+          assert "drizzle" not in text
+          assert not [k for k in pkgs if k.startswith("packages/")]
+          assert not [k for k in STUBS if k in pkgs]
           path.write_text(text)
-          print('wrote', len(text), 'removed', len(to_del))
+          print("surgical wrote", len(text), "removed", len(to_del))
           PY
+
+          if npm install --package-lock-only --ignore-scripts --no-audit --no-fund; then
+            echo "npm package-lock-only succeeded"
+          else
+            echo "npm failed; keeping surgical lockfile"
+          fi
+
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path("package-lock.json").read_text()
+          pkgs = json.loads(raw)["packages"]
+          stubs = [
+              "node_modules/@modus/agent-protocol",
+              "node_modules/@modus/config",
+              "node_modules/@modus/core",
+              "node_modules/@modus/ui",
+          ]
+          assert "drizzle" not in raw
+          assert not [k for k in pkgs if k.startswith("packages/")]
+          assert not [k for k in stubs if k in pkgs]
+          assert pkgs.get("", {}).get("workspaces") == ["apps/*"]
+          print("verified", len(raw), "entries", len(pkgs))
+          PY
+
           rm -rf .cursor-tmp
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git status
-          git commit -m "chore: refresh package-lock after stub and drizzle removal"
+          git commit -m "chore: fix package-lock remove @modus stub links"
           git push origin HEAD:cursor/cleanup-maintainability-67ea
