@@ -14,44 +14,45 @@ jobs:
         with:
           ref: cursor/cleanup-maintainability-67ea
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - name: Regenerate package-lock.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euxo pipefail
+          node -v
+          npm -v
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          python3 -c "import json; from pathlib import Path; raw=Path('package-lock.json').read_text(); assert 'drizzle' not in raw; pkgs=json.loads(raw)['packages']; stale=[k for k in pkgs if k.startswith('packages/')]; assert not stale, stale; print('ok', len(raw), len(pkgs))"
+          rm -rf .cursor-tmp
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status
+          git commit -m "chore: refresh package-lock after stub and drizzle removal"
+          git push origin HEAD:cursor/cleanup-maintainability-67ea
+      - name: Upload error log on failure
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          mkdir -p .cursor-tmp/lock
           {
-            node -v
-            npm -v
-            rm -f package-lock.json
-            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-            python3 - <<'PY'
-          import json
-          from pathlib import Path
-          raw = Path('package-lock.json').read_text()
-          assert 'drizzle' not in raw, 'drizzle still present'
-          pkgs = json.loads(raw)['packages']
-          stale = [k for k in pkgs if k.startswith('packages/')]
-          assert not stale, stale
-          print('lock size', len(raw), 'entries', len(pkgs))
-          PY
-            rm -rf .cursor-tmp
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git status
-            git commit -m "chore: refresh package-lock after stub and drizzle removal"
-            git push
-          } 2>&1 | tee /tmp/regen.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            mkdir -p .cursor-tmp/lock
-            cp /tmp/regen.log .cursor-tmp/lock/ERROR.txt
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .cursor-tmp/lock/ERROR.txt
-            git commit -m "ci: package-lock regenerate error log" || true
-            git push || true
-            exit "$status"
-          fi
+            echo "node: $(node -v || true)"
+            echo "npm: $(npm -v || true)"
+            echo "branch: $(git branch -vv || true)"
+            echo "status: $(git status || true)"
+            ls -la || true
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund || true
+            ls -la package-lock.json || true
+          } > .cursor-tmp/lock/ERROR.txt 2>&1 || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .cursor-tmp/lock/ERROR.txt
+          git commit -m "ci: package-lock regenerate error log" || true
+          git push origin HEAD:cursor/cleanup-maintainability-67ea || true
