@@ -4,6 +4,9 @@ import type { Configuration } from "electron-builder";
 
 const fastCodebaseResource = join("resources", "bin", "codegraph");
 
+/** Sidecar name matches `terminal-service` resolution (`.exe` only on Windows). */
+const ptyHostBinary = process.platform === "win32" ? "modus-pty-host.exe" : "modus-pty-host";
+
 const config: Configuration = {
   appId: "dev.modus.desktop",
   productName: "Modus",
@@ -27,8 +30,8 @@ const config: Configuration = {
       to: "skills",
     },
     {
-      from: "../../target/release/modus-pty-host.exe",
-      to: "bin/modus-pty-host.exe",
+      from: `../../target/release/${ptyHostBinary}`,
+      to: `bin/${ptyHostBinary}`,
     },
     ...(existsSync(fastCodebaseResource)
       ? [
