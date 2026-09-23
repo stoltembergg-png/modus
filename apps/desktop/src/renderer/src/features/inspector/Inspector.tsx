@@ -76,6 +76,7 @@ const INSPECTOR_MAX_WIDTH = 1040;
 const INSPECTOR_BROWSER_PREFERRED_WIDTH = 760;
 const INSPECTOR_COLLAPSED_WIDTH = 0;
 const INSPECTOR_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] } as const;
+const INSPECTOR_TAB_PANEL_CLASS = "inspector-tab-panel min-h-0 flex-1 outline-none";
 const loadBrowserPanel = () => import("../browser/BrowserPanel");
 const loadTerminalPanel = () => import("../terminal/TerminalPanel");
 const BrowserPanel = lazy(() =>
@@ -327,13 +328,13 @@ export function Inspector({
                   </div>
                 </div>
 
-                <Tabs.Panel className="min-h-0 flex-1 outline-none" value="changes">
+                <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="changes">
                   <DiffPanel cwd={cwd} sessionId={sessionId} workspaceId={activeWorkspace?.id} />
                 </Tabs.Panel>
-                <Tabs.Panel className="min-h-0 flex-1 outline-none" value="plan">
+                <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="plan">
                   <PlanPanel plan={plan} />
                 </Tabs.Panel>
-                <Tabs.Panel className="min-h-0 flex-1 outline-none" value="files">
+                <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="files">
                   <FilesPanel
                     cwd={cwd}
                     onAddToChat={onAddToChat}
@@ -341,7 +342,7 @@ export function Inspector({
                     revealPath={revealPath}
                   />
                 </Tabs.Panel>
-                <Tabs.Panel className="min-h-0 flex-1 outline-none" value="subagents">
+                <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="subagents">
                   <SubagentsPanel
                     contextUsageBySession={contextUsageBySession}
                     defaultModel={defaultModel}
@@ -364,14 +365,14 @@ export function Inspector({
                     workspace={activeWorkspace}
                   />
                 </Tabs.Panel>
-                <Tabs.Panel className="min-h-0 flex-1 outline-none" keepMounted value="browser">
+                <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} keepMounted value="browser">
                   {shouldRenderBrowser ? (
                     <Suspense fallback={<ModusLoadingFallback />}>
                       <BrowserPanel active={tab === "browser"} workspaceId={activeWorkspace?.id} />
                     </Suspense>
                   ) : null}
                 </Tabs.Panel>
-                <Tabs.Panel className="min-h-0 flex-1 outline-none" keepMounted value="terminal">
+                <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} keepMounted value="terminal">
                   {shouldRenderTerminal ? (
                     <Suspense fallback={<ModusLoadingFallback />}>
                       <TerminalPanel
@@ -387,7 +388,7 @@ export function Inspector({
                   ) : null}
                 </Tabs.Panel>
                 <Tabs.Panel
-                  className="scroll-thin min-h-0 flex-1 overflow-y-auto outline-none"
+                  className={`${INSPECTOR_TAB_PANEL_CLASS} scroll-thin overflow-y-auto`}
                   value="security"
                 >
                   <SecurityPanel securityState={securityState} />
