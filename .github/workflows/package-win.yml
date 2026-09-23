@@ -1,0 +1,75 @@
+name: Package Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/windows-package-test-5588]
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/package-win.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package-win:
+    name: package (x64)
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19"
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build PTY host
+        run: |
+          cargo build --release -p modus-pty-host
+          if (!(Test-Path "target\release\modus-pty-host.exe")) { throw "modus-pty-host.exe missing" }
+          Get-Item "target\release\modus-pty-host.exe" | Format-List Name, Length
+
+      - name: Verify Electron binary
+        shell: bash
+        run: |
+          node -e "console.log('electron=', require('electron'))"
+          ls -lah node_modules/electron/dist || ls -lah apps/desktop/node_modules/electron/dist || true
+
+      - name: Build Electron app
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm --workspace @modus/desktop exec -- electron-vite build
+
+      - name: Package Windows x64 (unsigned)
+        env:
+          # Test compile only — no Authenticode / EV cert in this workflow.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm --workspace @modus/desktop run package:win -- --x64 --publish never
+
+      - name: List dist
+        shell: bash
+        run: ls -lah apps/desktop/dist
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: modus-windows-x64-${{ github.sha }}
+          path: |
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.yml
+            apps/desktop/dist/win-unpacked/**
+          if-no-files-found: warn
+          retention-days: 7
