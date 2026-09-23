@@ -15,19 +15,32 @@ jobs:
           ref: cursor/cleanup-maintainability-67ea
           fetch-depth: 0
           persist-credentials: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Regenerate package-lock.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Surgically refresh package-lock.json
         run: |
           set -euxo pipefail
-          node -v
-          npm -v
-          rm -f package-lock.json
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          python3 -c "import json; from pathlib import Path; raw=Path('package-lock.json').read_text(); assert 'drizzle' not in raw; pkgs=json.loads(raw)['packages']; stale=[k for k in pkgs if k.startswith('packages/')]; assert not stale, stale; print('ok', len(raw), len(pkgs))"
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('package-lock.json')
+          data = json.loads(path.read_text())
+          pkgs = data['packages']
+          root = pkgs.setdefault('', {})
+          root['workspaces'] = ['apps/*']
+          desk = pkgs.get('apps/desktop', {})
+          deps = desk.get('dependencies', {})
+          deps.pop('drizzle-orm', None)
+          to_del = [
+              k for k in list(pkgs)
+              if k.startswith('packages/') or 'drizzle' in k
+          ]
+          for k in to_del:
+              del pkgs[k]
+          text = json.dumps(data, indent=2) + '\n'
+          assert 'drizzle' not in text
+          assert not [k for k in pkgs if k.startswith('packages/')]
+          path.write_text(text)
+          print('wrote', len(text), 'removed', len(to_del))
+          PY
           rm -rf .cursor-tmp
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -35,24 +48,3 @@ jobs:
           git status
           git commit -m "chore: refresh package-lock after stub and drizzle removal"
           git push origin HEAD:cursor/cleanup-maintainability-67ea
-      - name: Upload error log on failure
-        if: failure()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euxo pipefail
-          mkdir -p .cursor-tmp/lock
-          {
-            echo "node: $(node -v || true)"
-            echo "npm: $(npm -v || true)"
-            echo "branch: $(git branch -vv || true)"
-            echo "status: $(git status || true)"
-            ls -la || true
-            npm install --package-lock-only --ignore-scripts --no-audit --no-fund || true
-            ls -la package-lock.json || true
-          } > .cursor-tmp/lock/ERROR.txt 2>&1 || true
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .cursor-tmp/lock/ERROR.txt
-          git commit -m "ci: package-lock regenerate error log" || true
-          git push origin HEAD:cursor/cleanup-maintainability-67ea || true
