@@ -34,8 +34,8 @@ import type {
   SkillSelection,
   ThinkingOption,
 } from "../../../../shared/contracts";
+import { GradientWaves } from "../../components/ui/GradientWaves";
 import { ImageThumb } from "../../components/ui/ImageViewer";
-import { ShineBorder } from "../../components/ui/ShineBorder";
 import { cn } from "../../lib/cn";
 import { ContextUsageRing, contextUsagePercent, formatUsagePercent } from "../../lib/contextUsage";
 import {
@@ -568,9 +568,9 @@ export function Composer({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {isRunning ? <ShineBorder /> : null}
+        {isRunning ? <GradientWaves /> : null}
         <div
-          className="relative"
+          className="relative z-10"
           onCompositionEnd={() => setIsComposing(false)}
           onCompositionStart={() => setIsComposing(true)}
         >
