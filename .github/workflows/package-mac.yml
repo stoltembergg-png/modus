@@ -48,7 +48,20 @@ jobs:
         run: npm ci
 
       - name: Ensure CodeGraph package for target arch
-        run: npm install --no-save --no-package-lock "@colbymchenry/codegraph-darwin-${{ matrix.codegraph_arch }}@1.1.1"
+        run: |
+          set -euo pipefail
+          PKG="@colbymchenry/codegraph-darwin-${{ matrix.codegraph_arch }}"
+          if node -e "require.resolve('${PKG}/package.json')" 2>/dev/null; then
+            echo "already resolvable: ${PKG}"
+            node -e "console.log(require.resolve('${PKG}/package.json'))"
+            exit 0
+          fi
+          echo "Fetching ${PKG}@1.1.1 via npm pack"
+          TARBALL="$(npm pack "${PKG}@1.1.1")"
+          mkdir -p "node_modules/@colbymchenry/codegraph-darwin-${{ matrix.codegraph_arch }}"
+          tar -xzf "${TARBALL}" -C "node_modules/@colbymchenry/codegraph-darwin-${{ matrix.codegraph_arch }}" --strip-components=1
+          rm -f "${TARBALL}"
+          node -e "console.log(require.resolve('${PKG}/package.json'))"
 
       - name: Build PTY host (${{ matrix.rust_target }})
         run: |
