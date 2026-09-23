@@ -1,37 +1,41 @@
-name: Assemble package-lock
+name: Refresh package-lock
 on:
+  workflow_dispatch:
   push:
     branches: [cursor/cleanup-maintainability-67ea]
     paths: ['.cursor-tmp/lock/READY']
 permissions:
   contents: write
 jobs:
-  assemble:
+  refresh:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: cursor/cleanup-maintainability-67ea
           fetch-depth: 0
-      - name: Assemble and commit package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regenerate package-lock.json
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          import pathlib, base64, hashlib
-          parts = sorted(pathlib.Path('.cursor-tmp/lock').glob('part-*.b64'))
-          assert parts, 'no parts'
-          data = b''.join(
-              base64.b64decode(''.join(p.read_text().split()))
-              for p in parts
-          )
-          pathlib.Path('package-lock.json').write_bytes(data)
-          print('wrote', len(data), 'sha256', hashlib.sha256(data).hexdigest()[:16])
-          assert len(data) == 592039, len(data)
-          assert b'drizzle' not in data
+          npm install --package-lock-only --ignore-scripts
+          python3 - <<'PY'
+          from pathlib import Path
+          data = Path('package-lock.json').read_text()
+          assert 'drizzle' not in data, 'drizzle still present'
+          assert '"packages/core"' not in data and '"packages/ui"' not in data
+          print('lock size', len(data))
           PY
           rm -rf .cursor-tmp
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add package-lock.json
+          git add -u .cursor-tmp || true
+          if git diff --cached --quiet; then
+            echo 'No lockfile changes'
+            exit 0
+          fi
           git commit -m "chore: refresh package-lock after stub and drizzle removal"
           git push
