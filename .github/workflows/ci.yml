@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: typecheck · test · biome
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # engines.node is >=22.19.0; pin a 22.19+ line for reproducibility
+          node-version: "22.19"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Biome + typecheck
+        # `npm run check` = `biome check .` then workspace typecheck
+        run: npm run check
+
+      - name: Test
+        # Vitest unit suite; does not require Rust PTY sidecar or electron-builder packaging
+        run: npm run test
