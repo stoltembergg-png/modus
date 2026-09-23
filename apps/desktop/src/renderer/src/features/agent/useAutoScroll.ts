@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /**
- * Stick-to-bottom scrolling, ported from opencode's `createAutoScroll`
- * (packages/ui/src/hooks/create-auto-scroll.tsx).
+ * Stick-to-bottom scrolling, ported from opencode's `createAutoScroll`.
  *
  * The authoritative signal for "should I follow the bottom" is NOT a pixel
  * proximity threshold recomputed on every scroll event — that re-enables

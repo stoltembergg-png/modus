@@ -120,9 +120,9 @@ fn spawn_session(
     let pid = child.process_id();
     let killer = child.clone_killer();
     let mut reader = pair.master.try_clone_reader()?;
-    let mut pty_writer = pair.master.take_writer()?;
+    let pty_writer = pair.master.take_writer()?;
 
-    // ── ConPTY unblock (Windows) ─────────────────────────────────────────────
+    // ── ConPTY unblock (Windows) ─────────────────────────────────────────────────────────────
     // portable-pty 0.9.0 creates the ConPTY with PSEUDOCONSOLE_INHERIT_CURSOR,
     // which makes ConPTY emit a Device Status Report cursor-position query
     // (`ESC [ 6 n`) on the output pipe during init and then BLOCK until the host

@@ -42,17 +42,29 @@ Modus is early and currently runs best from source.
 - **Permissioned execution** - Route shell, Git, browser, MCP, file, and external actions through one approval flow.
 - **Checkpoints and rollback** - Snapshot the workspace before agent runs and restore from the timeline when needed.
 
+## Repo layout
+
+```text
+apps/desktop/     Electron product (main / preload / renderer)
+crates/pty-host/  Rust PTY sidecar (modus-pty-host)
+catalog/          Generated model provider catalog
+docs/             Architecture notes and media
+scripts/          Model catalog generator
+```
+
+The desktop app is self-contained under `apps/desktop`. Shared types and tools live in `apps/desktop/src/shared`, not in separate workspace packages.
+
 ## Getting Started
 
-Requirements for Windows and macOS:
+Requirements:
 
 - Node.js `>= 22.19.0`
 - npm
-- Rust + Cargo
+- Rust + Cargo (recent stable; crate uses edition 2024)
 - Git
 
 ```bash
-git clone https://github.com/brandlll-lee/modus.git
+git clone https://github.com/stoltembergg-png/modus.git
 cd modus
 npm install
 npm run dev
@@ -64,20 +76,23 @@ Then open a workspace folder and configure a model provider in Settings.
 
 ```bash
 npm run dev
-npm run check
 npm run test
 npm --workspace @modus/desktop run typecheck
+npm --workspace @modus/desktop run build:pty
 npm --workspace @modus/desktop run build
 ```
+
+`npm run check` runs Biome plus workspace typechecks. Biome format/lint may still report pre-existing issues on some branches; prefer `typecheck` + `test` as the local gate until a format sweep lands.
 
 Package locally:
 
 ```bash
 npm --workspace @modus/desktop run package:win -- --publish never
 npm --workspace @modus/desktop run package:mac -- --publish never
+npm --workspace @modus/desktop run package:linux -- --publish never
 ```
 
-Run the Windows command on Windows and the macOS command on macOS.
+Run the platform-matching package command on that OS.
 
 ## MCP Config
 
@@ -96,7 +111,7 @@ Electron, React, TypeScript, Tailwind CSS, Base UI, Motion, Monaco, xterm.js, St
 
 ## Contributing
 
-Contributions are welcome. Keep PRs small, use Conventional Commits, and run `npm run check` plus `npm run test` before opening a PR.
+Contributions are welcome. Keep PRs small, use Conventional Commits, and run `npm run test` plus `npm --workspace @modus/desktop run typecheck` before opening a PR.
 
 ## License
 
