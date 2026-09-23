@@ -1,0 +1,46 @@
+name: apply-composer-gw-props
+on:
+  push:
+    branches: [cursor/gradient-waves-react-bits-5588]
+    paths:
+      - '.github/workflows/apply-composer-gw-props.yml'
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[skip-apply]')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/gradient-waves-react-bits-5588
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update Composer GradientWaves props
+        run: |
+          set -euo pipefail
+          FILE=apps/desktop/src/renderer/src/features/composer/Composer.tsx
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("apps/desktop/src/renderer/src/features/composer/Composer.tsx")
+          text = p.read_text()
+          old = '{isRunning ? <GradientWaves /> : null}'
+          new = '{isRunning ? <GradientWaves detail="medium" grain opacity={0.6} speed={0.45} /> : null}'
+          if old not in text:
+              if new in text:
+                  print("already applied")
+                  raise SystemExit(0)
+              raise SystemExit("target line not found")
+          p.write_text(text.replace(old, new, 1))
+          print("updated")
+          PY
+          git config user.name "Gabriel"
+          git config user.email "stoltembergg@gmail.com"
+          git add "$FILE"
+          rm -f .github/workflows/apply-composer-gw-props.yml
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no changes"
+            exit 0
+          fi
+          git commit -m "feat(composer): align Gradient Waves with React Bits shader [skip-apply]"
+          git push
