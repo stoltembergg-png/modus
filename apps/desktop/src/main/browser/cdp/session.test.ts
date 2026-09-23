@@ -20,12 +20,9 @@ function eventingWebContents(): {
   emitMessage: (method: string, params?: Record<string, unknown>, sessionId?: string) => void;
 } {
   let attached = false;
-  const listeners: Array<(
-    event: unknown,
-    method: string,
-    params: Record<string, unknown>,
-    sessionId?: string,
-  ) => void> = [];
+  const listeners: Array<
+    (event: unknown, method: string, params: Record<string, unknown>, sessionId?: string) => void
+  > = [];
   const dbg = {
     isAttached: () => attached,
     attach: () => {

@@ -11,14 +11,7 @@ import {
   IconWorld,
 } from "@tabler/icons-react";
 import { animate, m, useMotionValue } from "motion/react";
-import {
-  lazy,
-  type PointerEvent,
-  Suspense,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { lazy, type PointerEvent, Suspense, useEffect, useRef, useState } from "react";
 import type { SecurityState } from "../../../../preload/types";
 import type {
   AgentSessionInfo,
@@ -31,7 +24,7 @@ import type {
 import { ChromeMoreMenu } from "../../components/ui/ChromeMoreMenu";
 import { ModusLoadingFallback } from "../../components/ui/ModusLoadingMark";
 import { PanelHeader } from "../../components/ui/Panel";
-import { ToolbarButton, TOOLBAR_ICON } from "../../components/ui/ToolbarButton";
+import { TOOLBAR_ICON, ToolbarButton } from "../../components/ui/ToolbarButton";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { cn } from "../../lib/cn";
 import type { AgentEventHub } from "../agent/agentEventHub";
@@ -325,10 +318,7 @@ export function Inspector({
                   </Tabs.List>
                   <div className="ml-1 flex shrink-0 items-center gap-0.5">
                     <ChromeMoreMenu onOpenSettings={onOpenSettings} />
-                    <ToolbarButton
-                      label="Collapse right panel"
-                      onClick={() => onOpenChange(false)}
-                    >
+                    <ToolbarButton label="Collapse right panel" onClick={() => onOpenChange(false)}>
                       <IconLayoutSidebarRight
                         size={TOOLBAR_ICON.size}
                         stroke={TOOLBAR_ICON.stroke}

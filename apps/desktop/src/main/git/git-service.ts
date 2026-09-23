@@ -353,7 +353,12 @@ export async function listCommitLog(cwd: string, limit = 50): Promise<GitCommit[
       date: date ?? "",
       relativeDate: relativeDate ?? "",
       parents: parents ? parents.split(/\s+/) : [],
-      refs: refs ? refs.split(", ").map((ref) => ref.trim()).filter(Boolean) : [],
+      refs: refs
+        ? refs
+            .split(", ")
+            .map((ref) => ref.trim())
+            .filter(Boolean)
+        : [],
     });
   }
   return commits;

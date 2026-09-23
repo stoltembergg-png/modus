@@ -67,9 +67,7 @@ describe("extractRailEntries", () => {
       { id: "notice", type: "notice", title: "runtime error", body: "x" },
     ];
 
-    expect(extractRailEntries(blocks)).toEqual([
-      { key: "u1", userPreview: "live turn" },
-    ]);
+    expect(extractRailEntries(blocks)).toEqual([{ key: "u1", userPreview: "live turn" }]);
   });
 
   it("keeps entry keys stable when timeline block ids repeat", () => {

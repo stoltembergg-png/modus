@@ -78,15 +78,13 @@ export type AgentRuntime = {
    * Block the current tool call until background subagents settle
    * or timeout — keeps the same agent turn open. Sole harvest path for task().
    */
-  waitBackground(
-    input: {
-      sessionId: string;
-      timeoutMs: number;
-      subagentIds?: string[];
-      signal?: AbortSignal;
-      onProgress?: (text: string) => void;
-    },
-  ): Promise<BackgroundWaitResult>;
+  waitBackground(input: {
+    sessionId: string;
+    timeoutMs: number;
+    subagentIds?: string[];
+    signal?: AbortSignal;
+    onProgress?: (text: string) => void;
+  }): Promise<BackgroundWaitResult>;
   abort(sessionId: string): Promise<void>;
   listRuns(sessionId: string): Promise<AgentRunInfo[]>;
   dispose(sessionId: string): Promise<void>;

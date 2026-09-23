@@ -59,9 +59,6 @@ export function SessionStatusDot({
     );
   }
   return (
-    <span
-      className={cn("size-1 shrink-0 rounded-full bg-fg-faint/40", className)}
-      title="Idle"
-    />
+    <span className={cn("size-1 shrink-0 rounded-full bg-fg-faint/40", className)} title="Idle" />
   );
 }

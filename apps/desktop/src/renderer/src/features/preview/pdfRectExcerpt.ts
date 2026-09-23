@@ -1,8 +1,8 @@
 import type { ContextItem } from "../../../../shared/contracts";
 import {
   createAddToChatWidget,
-  placeAddToChatWidget,
   type DomExcerptHit,
+  placeAddToChatWidget,
 } from "./domExcerptChrome";
 
 export type ClientRectBox = {

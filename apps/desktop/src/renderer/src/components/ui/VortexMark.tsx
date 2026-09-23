@@ -50,9 +50,7 @@ export function VortexMark({ className }: { className?: string }) {
         .vortex-mark .d43 { animation-delay: 1350ms; }
       `}</style>
       {[6, 17, 28, 39, 50].flatMap((y) =>
-        [6, 17, 28, 39, 50].map((x) => (
-          <use href="#vortex-b" key={`b-${x}-${y}`} x={x} y={y} />
-        )),
+        [6, 17, 28, 39, 50].map((x) => <use href="#vortex-b" key={`b-${x}-${y}`} x={x} y={y} />),
       )}
       {(
         [

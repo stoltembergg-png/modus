@@ -82,8 +82,7 @@ export function attachDomExcerptChrome(
   host.classList.add("preview-excerpt-host");
   const widget = createAddToChatWidget();
 
-  const hit = (): DomExcerptHit | undefined =>
-    selectionHitInsideHost(host, locatorFromAnchor);
+  const hit = (): DomExcerptHit | undefined => selectionHitInsideHost(host, locatorFromAnchor);
 
   const syncWidget = (): void => {
     const current = hit();

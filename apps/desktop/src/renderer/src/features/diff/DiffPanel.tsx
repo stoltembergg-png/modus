@@ -1523,7 +1523,10 @@ function CommitGraphLane({
   isMerge: boolean;
 }) {
   return (
-    <span aria-hidden className="relative flex h-full w-4 shrink-0 items-center justify-center self-stretch">
+    <span
+      aria-hidden
+      className="relative flex h-full w-4 shrink-0 items-center justify-center self-stretch"
+    >
       {/* One continuous rail — same ink as the nodes (link blue, like Git Graph). */}
       {!isFirst ? (
         <span className="absolute inset-x-0 top-0 bottom-1/2 mx-auto w-px bg-link/55" />
@@ -1537,7 +1540,9 @@ function CommitGraphLane({
         <span
           className={cn(
             "relative z-1 rounded-full bg-link",
-            isHead ? "size-[7px] ring-2 ring-link/25 ring-offset-1 ring-offset-panel" : "size-[6px]",
+            isHead
+              ? "size-[7px] ring-2 ring-link/25 ring-offset-1 ring-offset-panel"
+              : "size-[6px]",
           )}
         />
       )}

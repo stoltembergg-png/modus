@@ -1,10 +1,5 @@
 import { Popover } from "@base-ui/react/popover";
-import {
-  IconFolder,
-  IconGitBranch,
-  IconHexagon,
-  IconMessage,
-} from "@tabler/icons-react";
+import { IconFolder, IconGitBranch, IconHexagon, IconMessage } from "@tabler/icons-react";
 import { type ReactNode, useState } from "react";
 import type {
   AgentSessionInfo,
@@ -14,11 +9,7 @@ import type {
 } from "../../../../shared/contracts";
 import { TOOLBAR_ICON } from "../../components/ui/ToolbarButton";
 import { cn } from "../../lib/cn";
-import {
-  ContextUsageRing,
-  contextUsagePercent,
-  formatUsagePercent,
-} from "../../lib/contextUsage";
+import { ContextUsageRing, contextUsagePercent, formatUsagePercent } from "../../lib/contextUsage";
 import { lookupModel, modelIdentityLabel } from "../../lib/modelIdentity";
 
 type SessionTitlePopoverProps = {
@@ -74,9 +65,7 @@ export function SessionTitlePopover({
             <div className="mb-2.5 truncate px-1 text-sm text-fg">{session.title}</div>
             <div className="flex flex-col gap-2.5">
               <SessionMetaRow
-                icon={
-                  <IconGitBranch size={TOOLBAR_ICON.size} stroke={TOOLBAR_ICON.stroke} />
-                }
+                icon={<IconGitBranch size={TOOLBAR_ICON.size} stroke={TOOLBAR_ICON.stroke} />}
               >
                 <span className="truncate text-sm text-fg">{project}</span>
                 <span className="truncate text-2xs text-fg-faint">{branch ?? "No branch"}</span>

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { resolve as resolvePath } from "node:path";
 import { DEFAULT_APPROVAL_MODE, isApprovalMode } from "../../shared/approval";
-import type { ApprovalMode, ApprovalModeState, PermissionAction, PermissionDecision } from "../../shared/contracts";
+import type {
+  ApprovalMode,
+  ApprovalModeState,
+  PermissionAction,
+  PermissionDecision,
+} from "../../shared/contracts";
 import { getDatabase } from "../db/database";
 
 type PermissionRow = {
@@ -77,9 +82,9 @@ function projectApprovalModeKey(cwd: string): string {
 }
 
 function readSetting(key: string): string | undefined {
-  const row = getDatabase()
-    .prepare("select value from app_settings where key = ?")
-    .get(key) as { value: string | null } | undefined;
+  const row = getDatabase().prepare("select value from app_settings where key = ?").get(key) as
+    | { value: string | null }
+    | undefined;
   return row?.value ?? undefined;
 }
 

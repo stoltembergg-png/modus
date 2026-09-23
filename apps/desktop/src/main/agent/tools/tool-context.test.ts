@@ -72,7 +72,6 @@ describe("agent tool context", () => {
     const cwd = "shared-cwd";
     const events: AgentEvent[] = [];
     const parent = context("parent-session", cwd, (event) => events.push(event));
-    const child = context("child-session", cwd);
     await runWithAgentToolContext(parent, async () => {
       await todoTool.execute(
         "todo-call",

@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import type { FileEntry } from "../../../../shared/contracts";
 import { cn } from "../../lib/cn";
 import { materialIconForFile } from "../files/fileIcons";
 
@@ -40,7 +41,7 @@ async function findByExactBasename(cwd: string, name: string): Promise<string | 
   while (queue.length > 0 && visits < BASENAME_WALK_MAX) {
     const dir = queue.shift();
     visits += 1;
-    let entries;
+    let entries: FileEntry[];
     try {
       entries = await window.modus.files.list({ cwd, ...(dir ? { dir } : {}) });
     } catch {
@@ -119,9 +120,7 @@ export function FileRefChip({ path, label, onOpen, className }: FileRefChipProps
       }}
       title={path}
     >
-      {iconUrl ? (
-        <img alt="" className="size-3 shrink-0" draggable={false} src={iconUrl} />
-      ) : null}
+      {iconUrl ? <img alt="" className="size-3 shrink-0" draggable={false} src={iconUrl} /> : null}
       <span className="truncate">{name}</span>
     </a>
   );

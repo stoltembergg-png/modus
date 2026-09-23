@@ -1347,13 +1347,7 @@ export type FileReadResult = {
  * Structured preview capability from authoritative byte inspection (magic /
  * OOXML part peek). UI routes on this enum — never on filename extensions.
  */
-export type PreviewKind =
-  | "pdf"
-  | "docx"
-  | "xlsx"
-  | "pptx"
-  | "image"
-  | "unsupported";
+export type PreviewKind = "pdf" | "docx" | "xlsx" | "pptx" | "image" | "unsupported";
 
 /** Result of reading workspace file bytes for in-app document/image preview. */
 export type PreviewReadResult = {

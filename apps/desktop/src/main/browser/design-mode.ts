@@ -236,7 +236,9 @@ export class DesignModeController extends OverlayInjector {
       rect: sel.rect,
       ...(sel.color ? { color: sel.color } : {}),
       ...(sel.elements && sel.elements.length > 0 ? { elements: sel.elements } : {}),
-      ...(sel.contentParts && sel.contentParts.length > 0 ? { contentParts: sel.contentParts } : {}),
+      ...(sel.contentParts && sel.contentParts.length > 0
+        ? { contentParts: sel.contentParts }
+        : {}),
       ...(screenshotDataUrl ? { screenshotDataUrl } : {}),
     };
     this.deps.onSelect(element, sel.kind, sel.seedText);

@@ -9,6 +9,7 @@ import {
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import { app, type BrowserWindow as BrowserWindowType } from "electron";
+import { buildContextChips } from "../../shared/context-chips";
 import type {
   AgentEvent,
   AgentRunInfo,
@@ -17,7 +18,6 @@ import type {
   ModelInfo,
   PlanBuildStatus,
 } from "../../shared/contracts";
-import { buildContextChips } from "../../shared/context-chips";
 import { SUBAGENT_TOOL_NAMES, type ToolProfileName, WAIT_TOOL_NAME } from "../../shared/tools";
 import { releaseAgentBrowserControl } from "../browser/browser-service";
 import { formatResolvedContext, resolveContext } from "../context/context-service";
@@ -1357,8 +1357,7 @@ export class PiSdkRuntime implements AgentRuntime {
 
     const childRun = listAgentRuns(session.id).at(-1);
     const failed =
-      Boolean(promptError) ||
-      (childRun !== undefined && childRun.status !== "completed");
+      Boolean(promptError) || (childRun !== undefined && childRun.status !== "completed");
     const output =
       lastAssistantOutput(session.id) ??
       (promptError instanceof Error

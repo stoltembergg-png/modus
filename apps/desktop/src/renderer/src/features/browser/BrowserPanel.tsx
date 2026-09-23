@@ -21,11 +21,11 @@ import {
   useState,
 } from "react";
 import {
-  DESIGN_ACCENT_COLOR,
   type BrowserBounds,
   type BrowserEvent,
   type BrowserRecentInfo,
   type BrowserTabInfo,
+  DESIGN_ACCENT_COLOR,
 } from "../../../../shared/contracts";
 import { useNativeSurfaceSuppressed } from "../../components/ui/nativeSurface";
 import { EmptyState } from "../../components/ui/Panel";
@@ -724,7 +724,9 @@ function RecentItem({
           <IconWorld className="toolbar-icon shrink-0" size={16} stroke={1.7} />
         )}
         <span className="min-w-0 flex-1 truncate text-sm">{recent.title || recent.url}</span>
-        <span className="shrink-0 text-fg-faint text-xs">{formatRecentTime(recent.lastOpenedAt)}</span>
+        <span className="shrink-0 text-fg-faint text-xs">
+          {formatRecentTime(recent.lastOpenedAt)}
+        </span>
       </button>
       <button
         aria-label="Remove recent page"
@@ -798,7 +800,10 @@ function resolveDesignTheme() {
     elevated: token("--color-elevated", "#232325"),
     fg: token("--color-fg", "#e4e4e3"),
     fgSubtle: token("--color-fg-subtle", "#8a8a87"),
-    fontFamily: token("--font-sans", '"Inter Variable", "Inter", "Noto Sans SC Variable", "Noto Sans SC", system-ui, sans-serif'),
+    fontFamily: token(
+      "--font-sans",
+      '"Inter Variable", "Inter", "Noto Sans SC Variable", "Noto Sans SC", system-ui, sans-serif',
+    ),
     border: token("--color-hairline-strong", "rgba(255,255,255,0.08)"),
     shadow: "rgba(0,0,0,0.5)",
   };

@@ -1,7 +1,7 @@
 import { IconWorld } from "@tabler/icons-react";
 import { type ReactNode, useState } from "react";
-import { cn } from "../../lib/cn";
 import type { ToolIconName } from "../../../../shared/tools";
+import { cn } from "../../lib/cn";
 
 /** Session-scoped: one failed host never retries (shared by tool rows + markdown). */
 const failedHosts = new Set<string>();

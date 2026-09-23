@@ -8,13 +8,12 @@ import {
 import type { BrowserConsoleMessage, BrowserEvent, BrowserTabInfo } from "../../shared/contracts";
 import { IPC_CHANNELS } from "../ipc/channels";
 import { AgentVisualizer } from "./agent-visualizer";
+import { upsertBrowserRecent } from "./browser-recents-store";
 import { DialogController } from "./cdp/lifecycle";
 import { NetworkRecorder } from "./cdp/network";
-import { captureViewRect, clampViewportRect, growViewportRect } from "./view-capture";
 import { CdpSession } from "./cdp/session";
 import { SnapshotStore } from "./cdp/snapshot";
 import { DesignModeController } from "./design-mode";
-import { upsertBrowserRecent } from "./browser-recents-store";
 import {
   applySessionSecurity,
   DEFAULT_URL,
@@ -22,6 +21,7 @@ import {
   normalizeBrowserUrl,
   workspacePartition,
 } from "./security";
+import { captureViewRect, clampViewportRect, growViewportRect } from "./view-capture";
 import { detachView } from "./view-host";
 
 /**

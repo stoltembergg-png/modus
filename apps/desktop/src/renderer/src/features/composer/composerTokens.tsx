@@ -14,8 +14,8 @@ import {
   IconWorld,
 } from "@tabler/icons-react";
 import type { ReactNode } from "react";
-import type { ContextItem, SkillSelection } from "../../../../shared/contracts";
 import { formatFileLineRange } from "../../../../shared/context-chips";
+import type { ContextItem, SkillSelection } from "../../../../shared/contracts";
 import { materialIconForFile } from "../files/fileIcons";
 
 function basename(path: string): string {
@@ -137,7 +137,9 @@ export function TokenContent({ item }: { item: ContextItem }) {
     >
       <span className="inline-flex">{meta.icon}</span>
       <span className="truncate">{meta.label}</span>
-      {meta.detail ? <span className="shrink-0 font-normal text-fg-muted">{meta.detail}</span> : null}
+      {meta.detail ? (
+        <span className="shrink-0 font-normal text-fg-muted">{meta.detail}</span>
+      ) : null}
     </span>
   );
 }
