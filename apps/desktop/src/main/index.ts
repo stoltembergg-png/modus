@@ -5,8 +5,8 @@ import { registerAppIpc } from "./ipc/register-app-ipc";
 import { disposeAllMcp } from "./mcp/mcp-service";
 import { createStartupTimeline } from "./startup/startup-timeline";
 import { shutdownTerminals } from "./terminal/terminal-service";
-import { createMainWindow } from "./windows/main-window";
 import { installApplicationMenu } from "./windows/application-menu";
+import { createMainWindow } from "./windows/main-window";
 
 let mainWindow: BrowserWindowType | null = null;
 const startupTimeline = createStartupTimeline();
