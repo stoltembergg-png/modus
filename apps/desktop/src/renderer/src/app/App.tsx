@@ -946,17 +946,21 @@ export function App() {
                         </div>
                       ) : null}
 
-                      <AnimatePresence initial={false} mode="wait">
+                      <AnimatePresence mode="wait">
                         {activeSession ? (
                           <m.div
-                            animate={{ opacity: 1 }}
+                            animate={{ opacity: 1, y: 0 }}
                             className="flex min-h-0 min-w-0 flex-1"
-                            exit={{ opacity: 0 }}
-                            initial={{ opacity: 0 }}
-                            key="conversation"
+                            exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
+                            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                            key={`conversation:${activeSession.id}`}
                             layout={reduceMotion ? false : "position"}
                             layoutDependency={responsiveSidebarOpen}
-                            transition={{ ...SIDEBAR_TRANSITION, layout: SIDEBAR_TRANSITION }}
+                            transition={{
+                              ...SIDEBAR_TRANSITION,
+                              duration: reduceMotion ? 0 : SIDEBAR_TRANSITION.duration,
+                              layout: SIDEBAR_TRANSITION,
+                            }}
                           >
                             <Suspense fallback={<ModusLoadingFallback />}>
                               <ChatPane
@@ -1008,12 +1012,15 @@ export function App() {
                           </m.div>
                         ) : (
                           <m.div
-                            animate={{ opacity: 1 }}
+                            animate={{ opacity: 1, y: 0 }}
                             className="flex min-h-0 flex-1 flex-col items-center justify-center px-6"
-                            exit={{ opacity: 0 }}
-                            initial={{ opacity: 0 }}
+                            exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
+                            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
                             key="hero"
-                            transition={{ duration: 0.12, ease: "easeOut" }}
+                            transition={{
+                              duration: reduceMotion ? 0 : 0.12,
+                              ease: "easeOut",
+                            }}
                           >
                             <div className="w-full max-w-[680px] -translate-y-4">
                               <div className="mb-5 flex justify-center">
