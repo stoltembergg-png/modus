@@ -18,9 +18,19 @@ permissions:
 
 jobs:
   package-mac:
-    name: build · package (unsigned)
+    name: package (${{ matrix.electron_arch }})
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - electron_arch: arm64
+            rust_target: aarch64-apple-darwin
+            codegraph_arch: arm64
+          - electron_arch: x64
+            rust_target: x86_64-apple-darwin
+            codegraph_arch: x64
     steps:
       - uses: actions/checkout@v4
 
@@ -29,14 +39,23 @@ jobs:
           node-version: "22.19"
           cache: npm
 
-      - name: Install Rust stable
+      - name: Install Rust stable (${{ matrix.rust_target }})
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build PTY host
-        run: npm --workspace @modus/desktop run build:pty
+      - name: Ensure CodeGraph package for target arch
+        run: npm install --no-save --no-package-lock "@colbymchenry/codegraph-darwin-${{ matrix.codegraph_arch }}@1.1.1"
+
+      - name: Build PTY host (${{ matrix.rust_target }})
+        run: |
+          cargo build --release -p modus-pty-host --target "${{ matrix.rust_target }}"
+          mkdir -p target/release
+          cp "target/${{ matrix.rust_target }}/release/modus-pty-host" target/release/modus-pty-host
+          file target/release/modus-pty-host
 
       - name: Verify Electron binary
         run: |
@@ -49,20 +68,25 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         run: npm --workspace @modus/desktop exec -- electron-vite build
 
-      - name: Package macOS (unsigned)
+      - name: Package macOS ${{ matrix.electron_arch }} (unsigned)
         env:
           # Test compile only — no Developer ID / notarization in this workflow.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           NODE_OPTIONS: --max-old-space-size=8192
-        run: npm --workspace @modus/desktop run package:mac -- --publish never
+          MODUS_CODEGRAPH_PLATFORM: darwin
+          MODUS_CODEGRAPH_ARCH: ${{ matrix.codegraph_arch }}
+        run: |
+          npm --workspace @modus/desktop run package:mac -- \
+            --${{ matrix.electron_arch }} \
+            --publish never
 
       - name: List dist
         run: ls -lah apps/desktop/dist
 
-      - name: Upload macOS artifacts
+      - name: Upload macOS ${{ matrix.electron_arch }} artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: modus-macos-${{ github.sha }}
+          name: modus-macos-${{ matrix.electron_arch }}-${{ github.sha }}
           path: |
             apps/desktop/dist/*.dmg
             apps/desktop/dist/*.zip
