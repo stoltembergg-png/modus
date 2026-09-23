@@ -1,0 +1,99 @@
+diff --git a/apps/desktop/src/preload/index.ts b/apps/desktop/src/preload/index.ts
+index 8f434cb..bc15487 100644
+--- a/apps/desktop/src/preload/index.ts
++++ b/apps/desktop/src/preload/index.ts
+@@ -11,6 +11,7 @@ import type { ModusApi, SecurityState } from "./types";
+ 
+ const api: ModusApi = {
+   app: {
++    platform: process.platform,
+     version: () => ipcRenderer.invoke("app:version") as Promise<string>,
+     securityState: () => ipcRenderer.invoke("app:security-state") as Promise<SecurityState>,
+     startupMetric: (input) => ipcRenderer.invoke("app:startup-metric", input),
+diff --git a/apps/desktop/src/preload/types.ts b/apps/desktop/src/preload/types.ts
+index 78f9f32..bfc14f8 100644
+--- a/apps/desktop/src/preload/types.ts
++++ b/apps/desktop/src/preload/types.ts
+@@ -94,6 +94,8 @@ export type DesignModeTheme = {
+ 
+ export type ModusApi = {
+   app: {
++    /** Host OS platform (`darwin` | `win32` | `linux` …). Sync — set at preload time. */
++    platform: string;
+     version(): Promise<string>;
+     securityState(): Promise<SecurityState>;
+     startupMetric(input: StartupMetricInput): Promise<void>;
+diff --git a/apps/desktop/src/renderer/src/app/App.tsx b/apps/desktop/src/renderer/src/app/App.tsx
+index 8b7dd85..b55a5ef 100644
+--- a/apps/desktop/src/renderer/src/app/App.tsx
++++ b/apps/desktop/src/renderer/src/app/App.tsx
+@@ -1123,22 +1123,29 @@ export function App() {
+ }
+ 
+ /**
+- * 顶部 menubar 行 —— 整行 44px 高，自绘 titlebar：
+- *   - 左侧 BrandMark + File/Edit/View/Help（menubar 区，app-drag）
+- *   - 右侧 WindowControls 自绘 min/max/close（无 native overlay，无越界）
+- * 这样 hover 命中区域完全由 CSS 控制，永远不会超出 menubar 高度。
++ * 顶部 menubar 行 —— 整行 44px 高：
++ *   - macOS: traffic lights nativos (hiddenInset); só BrandMark + menus à direita deles
++ *   - Windows/Linux: titlebar frameless + WindowControls min/max/close à direita
+  */
+ function MenuBar() {
++  const isMac = window.modus?.app.platform === "darwin";
++
+   return (
+-    <div className="app-drag flex h-11 shrink-0 items-center bg-panel">
+-      <div className="flex flex-1 items-center gap-0.5 pl-2.5">
++    <div
++      className={cn(
++        "app-drag flex h-11 shrink-0 items-center bg-panel",
++        // Clear native traffic lights (positioned at ~14,14 in main-window).
++        isMac && "pl-[76px]",
++      )}
++    >
++      <div className={cn("flex flex-1 items-center gap-0.5", !isMac && "pl-2.5")}>
+         <BrandMark />
+         <MenuItem>File</MenuItem>
+         <MenuItem>Edit</MenuItem>
+         <MenuItem>View</MenuItem>
+         <MenuItem>Help</MenuItem>
+       </div>
+-      <WindowControls />
++      {isMac ? null : <WindowControls />}
+     </div>
+   );
+ }
+diff --git a/apps/desktop/src/renderer/src/components/Sidebar.tsx b/apps/desktop/src/renderer/src/components/Sidebar.tsx
+index c8300a9..5fa7a96 100644
+--- a/apps/desktop/src/renderer/src/components/Sidebar.tsx
++++ b/apps/desktop/src/renderer/src/components/Sidebar.tsx
+@@ -3,18 +3,15 @@ import {
+   IconArchive,
+   IconArchiveOff,
+   IconChevronRight,
+-  IconClock,
+   IconDots,
+   IconEdit,
+   IconFolder,
+   IconFolderOpen,
+   IconFolderPlus,
+-  IconGridDots,
+   IconLayoutSidebar,
+   IconPencil,
+   IconPin,
+   IconPinnedOff,
+-  IconSearch,
+   IconSettings,
+   IconTrash,
+   IconX,
+@@ -186,9 +183,6 @@ export function Sidebar({
+           >
+             New chat
+           </NavRow>
+-          <NavRow icon={<IconSearch size={SB_ICON} stroke={SB_STROKE} />}>Search</NavRow>
+-          <NavRow icon={<IconGridDots size={SB_ICON} stroke={SB_STROKE} />}>Plugins</NavRow>
+-          <NavRow icon={<IconClock size={SB_ICON} stroke={SB_STROKE} />}>Automations</NavRow>
+         </div>
+ 
+         <div
