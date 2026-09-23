@@ -285,7 +285,12 @@ describe("PiSdkRuntime", () => {
     insertSession(sessionId, `workspace-${crypto.randomUUID()}`, join(userData, "missing.jsonl"));
     const compact = vi.fn(async () => {
       mocks.emitPiEvent({ type: "compaction_start", reason: "manual" });
-      mocks.emitPiEvent({ type: "compaction_end", reason: "manual", aborted: false, willRetry: false });
+      mocks.emitPiEvent({
+        type: "compaction_end",
+        reason: "manual",
+        aborted: false,
+        willRetry: false,
+      });
     });
     mocks.createAgentSession.mockImplementationOnce(async () => ({
       session: createMockPiSession({ compact, isIdle: true }),
@@ -298,7 +303,10 @@ describe("PiSdkRuntime", () => {
       .prepare("select type from agent_events where session_id = ? order by rowid")
       .all(sessionId) as Array<{ type: string }>;
     expect(rows.map(({ type }) => type)).toEqual([
-      "session.status", "compaction.started", "compaction.ended", "session.status",
+      "session.status",
+      "compaction.started",
+      "compaction.ended",
+      "session.status",
     ]);
   });
 
@@ -339,7 +347,11 @@ describe("PiSdkRuntime", () => {
           mocks.emitPiEvent({
             type: "compaction_end",
             reason: "threshold",
-            result: { summary: "## Next Steps\n1. Finish", firstKeptEntryId: "e1", tokensBefore: 9 },
+            result: {
+              summary: "## Next Steps\n1. Finish",
+              firstKeptEntryId: "e1",
+              tokensBefore: 9,
+            },
             aborted: false,
             willRetry: false,
           });
@@ -370,7 +382,9 @@ describe("PiSdkRuntime", () => {
     expect(promptFn.mock.calls[1]?.[0]).toContain("Context was compacted");
     const types = (
       getDatabase()
-        .prepare("select type from agent_events where session_id = ? order by created_at asc, rowid asc")
+        .prepare(
+          "select type from agent_events where session_id = ? order by created_at asc, rowid asc",
+        )
         .all(sessionId) as Array<{ type: string }>
     ).map((row) => row.type);
     expect(types).toContain("compaction.started");
@@ -1184,7 +1198,11 @@ describe("PiSdkRuntime", () => {
     expect(waited.timedOut).toBe(false);
     expect(waited.subagents).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: first.session.id, status: "completed", output: "first done" }),
+        expect.objectContaining({
+          id: first.session.id,
+          status: "completed",
+          output: "first done",
+        }),
         expect.objectContaining({
           id: second.session.id,
           status: "completed",

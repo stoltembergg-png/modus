@@ -14,7 +14,11 @@ type PreviewHostProps = {
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; preview: PreviewReadResult; Engine: ComponentType<PreviewEngineProps> | null };
+  | {
+      status: "ready";
+      preview: PreviewReadResult;
+      Engine: ComponentType<PreviewEngineProps> | null;
+    };
 
 /**
  * Single in-app document/image preview surface. Routes on `previewKind` from
@@ -56,26 +60,12 @@ export function PreviewHost({ cwd, path, className, onAddToChat }: PreviewHostPr
     return <Centered className={className}>Loading preview…</Centered>;
   }
   if (state.status === "error") {
-    return (
-      <Unsupported
-        className={className}
-        cwd={cwd}
-        message={state.message}
-        path={path}
-      />
-    );
+    return <Unsupported className={className} cwd={cwd} message={state.message} path={path} />;
   }
 
   const { preview, Engine } = state;
   if (!Engine || preview.previewKind === "unsupported") {
-    return (
-      <Unsupported
-        className={className}
-        cwd={cwd}
-        kind={preview.previewKind}
-        path={path}
-      />
-    );
+    return <Unsupported className={className} cwd={cwd} kind={preview.previewKind} path={path} />;
   }
 
   return (
@@ -131,13 +121,7 @@ function Unsupported({
   );
 }
 
-function Centered({
-  children,
-  className,
-}: {
-  children: string;
-  className?: string | undefined;
-}) {
+function Centered({ children, className }: { children: string; className?: string | undefined }) {
   return (
     <div
       className={cn(

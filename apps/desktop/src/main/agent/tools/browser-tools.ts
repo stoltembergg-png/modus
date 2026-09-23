@@ -161,7 +161,8 @@ const snapshotTool = defineTool({
   label: "Browser snapshot",
   description:
     "Capture a text accessibility snapshot of the target tab. Use it to inspect visible structure, controls, labels, and state without relying on image vision.",
-  promptSnippet: "browser_snapshot(viewId?, maxLines?, maxDepth?) — capture an accessibility snapshot.",
+  promptSnippet:
+    "browser_snapshot(viewId?, maxLines?, maxDepth?) — capture an accessibility snapshot.",
   promptGuidelines: [
     "Prefer browser_snapshot for text-model verification after visible actions.",
     "Use fresh snapshots after page mutations; old element refs can go stale after navigation or re-render.",

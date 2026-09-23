@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatWaitHeadline, formatWaitedDuration } from "./wait-tools";
+import { formatWaitedDuration, formatWaitHeadline } from "./wait-tools";
 
 describe("formatWaitHeadline", () => {
   it("names a single subagent and duration from result facts", () => {

@@ -250,9 +250,7 @@ export function updateAgentSessionStatus(
   sessionId: string,
   status: AgentSessionInfo["status"],
 ): void {
-  getDatabase()
-    .prepare("update agent_sessions set status = ? where id = ?")
-    .run(status, sessionId);
+  getDatabase().prepare("update agent_sessions set status = ? where id = ?").run(status, sessionId);
 }
 
 export function updateAgentSessionMetadata(

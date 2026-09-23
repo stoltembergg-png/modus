@@ -119,9 +119,7 @@ export const DiffToolCard = memo(
             type="button"
           >
             <span className="flex w-4 shrink-0 items-center justify-center">
-              {iconUrl ? (
-                <img alt="" className="size-3.5" draggable={false} src={iconUrl} />
-              ) : null}
+              {iconUrl ? <img alt="" className="size-3.5" draggable={false} src={iconUrl} /> : null}
             </span>
 
             {running ? (

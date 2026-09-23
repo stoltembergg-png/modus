@@ -127,7 +127,7 @@ describe("context-service", () => {
     const content = resolved[0]?.content ?? "";
     expect(content).toContain("Selected elements:");
     expect(content).toContain("1. h1");
-    expect(content).toContain("Text: \"Pricing\"");
+    expect(content).toContain('Text: "Pricing"');
     expect(content).toContain("2. button");
     expect(content).toContain("DOM path: nav > button");
   });

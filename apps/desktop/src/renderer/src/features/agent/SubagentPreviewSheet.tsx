@@ -1,7 +1,7 @@
 import { IconArrowLeft, IconArrowsMaximize, IconX } from "@tabler/icons-react";
 import { m } from "motion/react";
 import { type ReactNode, useEffect, useState } from "react";
-import { ToolbarButton, TOOLBAR_ICON } from "../../components/ui/ToolbarButton";
+import { TOOLBAR_ICON, ToolbarButton } from "../../components/ui/ToolbarButton";
 import { cn } from "../../lib/cn";
 
 const PANEL_TRANSITION = { duration: 0.19, ease: [0.22, 1, 0.36, 1] } as const;
@@ -46,7 +46,10 @@ export function SubagentPreviewSheet({
     }
     setScrimIn(false);
     // Fallback when motion skips onAnimationComplete (already-at-target / reduced motion).
-    const id = window.setTimeout(() => setPresent(false), Math.ceil(PANEL_TRANSITION.duration * 1000) + 50);
+    const id = window.setTimeout(
+      () => setPresent(false),
+      Math.ceil(PANEL_TRANSITION.duration * 1000) + 50,
+    );
     return () => window.clearTimeout(id);
   }, [open]);
 
@@ -56,12 +59,13 @@ export function SubagentPreviewSheet({
 
   return (
     <div className={cn("absolute inset-0 z-40", open ? undefined : "pointer-events-none")}>
-      <div
-        className="subagent-preview-scrim absolute inset-0"
+      <button
+        aria-label="Close subagent preview"
+        className="subagent-preview-scrim absolute inset-0 cursor-default border-0 bg-transparent p-0"
         data-mounted={scrimIn ? "" : undefined}
         data-settled={open ? "" : undefined}
         onClick={onClose}
-        role="presentation"
+        type="button"
       />
       <m.div
         animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
@@ -96,7 +100,9 @@ export function SubagentPreviewSheet({
         </div>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {open ? (
-            <div className="subagent-preview-body flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+            <div className="subagent-preview-body flex min-h-0 min-w-0 flex-1 flex-col">
+              {children}
+            </div>
           ) : null}
         </div>
       </m.div>

@@ -10,14 +10,14 @@ import type {
   WorkingChangeStats,
   WorkspaceInfo,
 } from "../../../../shared/contracts";
-import type { AgentEventHub } from "../agent/agentEventHub";
-import { ChatPane } from "../agent/ChatPane";
-import { LineDelta } from "../agent/changes/ChangeStats";
-import { isSubagentSessionLive } from "../agent/subagentUi";
-import { SubagentSettledDot } from "../agent/SubagentRow";
 import { EmptyState } from "../../components/ui/Panel";
 import { VortexMark } from "../../components/ui/VortexMark";
 import { lookupModel, modelIdentityLabel } from "../../lib/modelIdentity";
+import type { AgentEventHub } from "../agent/agentEventHub";
+import { ChatPane } from "../agent/ChatPane";
+import { LineDelta } from "../agent/changes/ChangeStats";
+import { SubagentSettledDot } from "../agent/SubagentRow";
+import { isSubagentSessionLive } from "../agent/subagentUi";
 
 type PanelView = "overview" | "detail";
 
@@ -374,12 +374,7 @@ export function SubagentsPanel({
 }
 
 /** Same mark contract as chat rows: Vortex while live, settled status dot otherwise. */
-function SubagentProviderMark({
-  session,
-}: {
-  session: AgentSessionInfo;
-  models: ModelInfo[];
-}) {
+function SubagentProviderMark({ session }: { session: AgentSessionInfo; models: ModelInfo[] }) {
   if (isSubagentSessionLive(session.status)) {
     return (
       <span className="flex size-5 shrink-0 items-center justify-center">
@@ -704,7 +699,11 @@ function subagentTitle(session: AgentSessionInfo): string {
 
 function subagentMeta(session: AgentSessionInfo, models: ModelInfo[]): string {
   const info = lookupModel(models, session.model);
-  return [session.status, info ? modelIdentityLabel(info) : undefined, relativeTime(session.updatedAt)]
+  return [
+    session.status,
+    info ? modelIdentityLabel(info) : undefined,
+    relativeTime(session.updatedAt),
+  ]
     .filter(Boolean)
     .join(" · ");
 }

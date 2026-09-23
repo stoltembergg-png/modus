@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef, useState } from "react";
 import { IconCrop } from "@tabler/icons-react";
+import { memo, useEffect, useRef, useState } from "react";
 import { pageLocatorFromAnchor } from "../domExcerptChrome";
 import { attachPdfRectExcerpt } from "../pdfRectExcerpt";
 import type { PreviewEngineProps } from "../registry";
@@ -114,10 +114,7 @@ function PdfEngine({ bytes, path, onAddToChat }: PreviewEngineProps) {
         // Skip before bumping renderGen (aborted mid-paint + early return = stub).
         // Only skip when pages are still in the DOM. React re-renders of this
         // component wipe imperative children; skipping then leaves a blank pane.
-        if (
-          shouldSkipPdfRefit(lastFitWidth, fitWidth) &&
-          host.querySelector(".pdf-page")
-        ) {
+        if (shouldSkipPdfRefit(lastFitWidth, fitWidth) && host.querySelector(".pdf-page")) {
           return;
         }
 
@@ -227,7 +224,7 @@ function PdfEngine({ bytes, path, onAddToChat }: PreviewEngineProps) {
       host.replaceChildren();
       setIndicator(undefined);
     };
-  }, [bytes, path]);
+  }, [bytes]);
 
   if (error) {
     return (
@@ -239,7 +236,10 @@ function PdfEngine({ bytes, path, onAddToChat }: PreviewEngineProps) {
 
   return (
     <div className="relative h-full min-h-0">
-      <div className="scroll-thin pdf-scroller h-full overflow-auto bg-canvas p-3" ref={scrollerRef} />
+      <div
+        className="scroll-thin pdf-scroller h-full overflow-auto bg-canvas p-3"
+        ref={scrollerRef}
+      />
       <div className="pdf-page-chrome" ref={chromeRef} style={{ display: "none" }}>
         <button
           aria-label="Frame select for Add to Chat"

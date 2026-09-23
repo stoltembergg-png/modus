@@ -45,7 +45,9 @@ export function ChangeFileRow({
     <>
       <span className="min-w-0 flex-1 truncate text-left font-mono text-xs">
         {dir ? (
-          <span className="text-fg-faint transition-colors group-hover/file:text-fg-muted">{dir}</span>
+          <span className="text-fg-faint transition-colors group-hover/file:text-fg-muted">
+            {dir}
+          </span>
         ) : null}
         <span className="text-fg-muted transition-colors group-hover/file:text-fg">{name}</span>
       </span>

@@ -84,9 +84,9 @@ describe("IPC schemas", () => {
     expect(parseIpcInput(browserRecentSchema, { id: "recent-1" }, "browser:delete-recent")).toEqual(
       { id: "recent-1" },
     );
-    expect(() =>
-      parseIpcInput(browserRecentSchema, { id: "" }, "browser:delete-recent"),
-    ).toThrow("Invalid IPC payload");
+    expect(() => parseIpcInput(browserRecentSchema, { id: "" }, "browser:delete-recent")).toThrow(
+      "Invalid IPC payload",
+    );
   });
 
   it("leaves per-turn params undefined when omitted (keeps session defaults)", () => {

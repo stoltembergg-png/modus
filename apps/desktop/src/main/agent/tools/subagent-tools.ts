@@ -39,7 +39,9 @@ export function resolveTaskModelId(
   const raw = requested?.trim();
   if (!raw || raw === "inherit") return undefined;
   if (!available.some((model) => model.id === raw)) {
-    throw new Error(`Model is not available: ${raw}. Use an exact catalog id from the available models list.`);
+    throw new Error(
+      `Model is not available: ${raw}. Use an exact catalog id from the available models list.`,
+    );
   }
   return raw;
 }
@@ -65,7 +67,8 @@ const taskParams = Type.Object({
     Type.String({
       minLength: 1,
       maxLength: 160,
-      description: 'Exact composer catalog id (provider/id). Omit or "inherit" for the parent model.',
+      description:
+        'Exact composer catalog id (provider/id). Omit or "inherit" for the parent model.',
     }),
   ),
 });
@@ -112,7 +115,9 @@ const taskTool: ToolDefinition = defineTool({
               model,
               readOnly: configured?.readOnly ?? false,
               ...(configured?.tools ? { tools: configured.tools } : {}),
-              ...(configured?.disallowedTools ? { disallowedTools: configured.disallowedTools } : {}),
+              ...(configured?.disallowedTools
+                ? { disallowedTools: configured.disallowedTools }
+                : {}),
               isolation: configured?.isolation ?? "shared",
             },
           }

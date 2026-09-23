@@ -54,7 +54,7 @@ export default function DocxEngine({ bytes, path, onAddToChat }: PreviewEnginePr
       detachChrome();
       host.replaceChildren();
     };
-  }, [bytes, path]);
+  }, [bytes]);
 
   if (error) {
     return (

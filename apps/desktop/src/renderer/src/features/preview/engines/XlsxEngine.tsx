@@ -30,7 +30,15 @@ export default function XlsxEngine({ bytes }: PreviewEngineProps) {
             if (Array.isArray(values)) {
               for (let i = 1; i < values.length; i += 1) {
                 const cell = values[i];
-                cells.push(cell == null ? "" : String(typeof cell === "object" && cell !== null && "text" in cell ? (cell as { text: string }).text : cell));
+                cells.push(
+                  cell == null
+                    ? ""
+                    : String(
+                        typeof cell === "object" && cell !== null && "text" in cell
+                          ? (cell as { text: string }).text
+                          : cell,
+                      ),
+                );
               }
             }
             rows.push(cells);
@@ -80,7 +88,7 @@ export default function XlsxEngine({ bytes }: PreviewEngineProps) {
                 ? "rounded-md bg-hover px-2.5 py-1 text-2xs text-fg"
                 : "rounded-md px-2.5 py-1 text-2xs text-fg-subtle hover:bg-hover"
             }
-            key={`${s.name}-${i}`}
+            key={s.name}
             onClick={() => setActive(i)}
             type="button"
           >
@@ -92,10 +100,12 @@ export default function XlsxEngine({ bytes }: PreviewEngineProps) {
         <table className="border-collapse text-2xs text-fg">
           <tbody>
             {sheet.rows.map((row, ri) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: spreadsheet row/col identity is positional
               <tr key={ri}>
                 {row.map((cell, ci) => (
                   <td
                     className="max-w-60 truncate border border-hairline px-2 py-1 align-top"
+                    // biome-ignore lint/suspicious/noArrayIndexKey: spreadsheet row/col identity is positional
                     key={ci}
                     title={cell}
                   >

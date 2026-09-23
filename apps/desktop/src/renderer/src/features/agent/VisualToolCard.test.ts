@@ -9,7 +9,7 @@ describe("trimIncompleteTrailingTag", () => {
 
   it("strips a trailing incomplete tag fragment", () => {
     expect(trimIncompleteTrailingTag("<div>ok</div><spa")).toBe("<div>ok</div>");
-    expect(trimIncompleteTrailingTag("<svg><circle cx=\"1\"")).toBe("<svg>");
+    expect(trimIncompleteTrailingTag('<svg><circle cx="1"')).toBe("<svg>");
   });
 
   it("leaves text without angle brackets alone", () => {

@@ -22,8 +22,13 @@ import {
   useRef,
   useState,
 } from "react";
-import type { FileEntry, FileReadResult, FilesChangeEvent, ContextItem } from "../../../../shared/contracts";
-import { CodeViewer, type CodeSelectionRange } from "../../components/code/CodeViewer";
+import type {
+  ContextItem,
+  FileEntry,
+  FileReadResult,
+  FilesChangeEvent,
+} from "../../../../shared/contracts";
+import { type CodeSelectionRange, CodeViewer } from "../../components/code/CodeViewer";
 import { EmptyState } from "../../components/ui/Panel";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { cn } from "../../lib/cn";
@@ -585,6 +590,7 @@ function FileBreadcrumb({
               <span
                 aria-label="Unsaved changes"
                 className="size-1.5 shrink-0 rounded-full bg-fg-muted/70"
+                role="img"
               />
             ) : null}
           </span>
@@ -796,13 +802,7 @@ function FileViewer({
     if (!cwd) {
       return <Centered>Binary file — no preview.</Centered>;
     }
-    return (
-      <PreviewHost
-        cwd={cwd}
-        path={file.path}
-        {...(onAddToChat ? { onAddToChat } : {})}
-      />
-    );
+    return <PreviewHost cwd={cwd} path={file.path} {...(onAddToChat ? { onAddToChat } : {})} />;
   }
   if (isMarkdown(file.path)) {
     return (

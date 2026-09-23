@@ -50,7 +50,11 @@ export function growViewportRect(rect: ViewRect, viewport: ViewRect): ViewRect {
       Math.round(Math.max(elementWidth, elementHeight) * ELEMENT_CONTEXT_RATIO),
     ),
   );
-  let width = Math.min(MAX_CLIP_EDGE, viewW, Math.max(elementWidth + context * 2, MIN_CAPTURE_EDGE));
+  let width = Math.min(
+    MAX_CLIP_EDGE,
+    viewW,
+    Math.max(elementWidth + context * 2, MIN_CAPTURE_EDGE),
+  );
   let height = Math.min(
     MAX_CLIP_EDGE,
     viewH,

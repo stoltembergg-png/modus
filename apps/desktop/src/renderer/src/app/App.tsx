@@ -46,12 +46,12 @@ import type {
 } from "../../../shared/contracts";
 import modusLogo from "../assets/modus-logo.png";
 import { SIDEBAR_MIN_WIDTH, SIDEBAR_TRANSITION, Sidebar } from "../components/Sidebar";
+import { ChromeMoreMenu } from "../components/ui/ChromeMoreMenu";
 import { ImageViewerProvider } from "../components/ui/ImageViewer";
 import { ModusBot } from "../components/ui/ModusBot";
 import { ModusLoadingFallback } from "../components/ui/ModusLoadingMark";
 import { NativeSurfaceProvider } from "../components/ui/nativeSurface";
-import { ChromeMoreMenu } from "../components/ui/ChromeMoreMenu";
-import { ToolbarButton, TOOLBAR_ICON } from "../components/ui/ToolbarButton";
+import { TOOLBAR_ICON, ToolbarButton } from "../components/ui/ToolbarButton";
 import { TooltipProvider } from "../components/ui/Tooltip";
 import {
   AgentEventHub,
@@ -64,8 +64,8 @@ import {
 import type { ChatComposerDraft, ChatComposerDraftUpdate } from "../features/agent/ChatPane";
 import { addContextItemToDraft } from "../features/agent/ChatPane";
 import { SessionTitlePopover } from "../features/agent/SessionTitlePopover";
-import { contextItemKey } from "../features/composer/composerTokens";
 import { Composer, createEmptyComposerDraft } from "../features/composer/Composer";
+import { contextItemKey } from "../features/composer/composerTokens";
 import { BranchSwitcher } from "../features/git/BranchSwitcher";
 import { INSPECTOR_MIN_WIDTH } from "../features/inspector/inspector-layout";
 import { normalizePlan } from "../features/plan/planState";

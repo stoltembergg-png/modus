@@ -62,10 +62,7 @@ export function PlanTimelineCard({
         ) : null}
       </header>
 
-      <div
-        className={cn("mt-4 max-h-48 overflow-hidden", clipped && "clip-fade")}
-        ref={boxRef}
-      >
+      <div className={cn("mt-4 max-h-48 overflow-hidden", clipped && "clip-fade")} ref={boxRef}>
         <div ref={contentRef}>
           {title ? (
             <h2 className="mb-4 font-bold text-[1.75rem] text-fg leading-tight tracking-[-0.025em]">
