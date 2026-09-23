@@ -104,7 +104,7 @@ export function getActiveAgentRun(sessionId: string): AgentRunInfo | undefined {
       `select id, session_id, user_message_id, prompt, status, model, started_at, completed_at, error
        from agent_runs
        where session_id = ? and status in ('running', 'blocked')
-       order by started_at desc
+       order by started_at desc, rowid desc
        limit 1`,
     )
     .get(sessionId) as AgentRunRow | undefined;
