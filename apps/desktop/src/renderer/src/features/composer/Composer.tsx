@@ -568,7 +568,7 @@ export function Composer({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {isRunning ? <GradientWaves /> : null}
+        {isRunning ? <GradientWaves detail="medium" grain opacity={0.6} speed={0.45} /> : null}
         <div
           className="relative z-10"
           onCompositionEnd={() => setIsComposing(false)}
