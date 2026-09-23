@@ -1,0 +1,62 @@
+name: Package macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [cursor/macos-package-test-5588]
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/package-mac.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package-mac:
+    name: build · package (unsigned)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.19"
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build PTY host
+        run: npm --workspace @modus/desktop run build:pty
+
+      - name: Build Electron app
+        run: npm --workspace @modus/desktop exec electron-vite build
+
+      - name: Package macOS (unsigned)
+        env:
+          # Test compile only — no Developer ID / notarization in this workflow.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm --workspace @modus/desktop run package:mac -- --publish never
+
+      - name: List dist
+        run: ls -lah apps/desktop/dist
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: modus-macos-${{ github.sha }}
+          path: |
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/mac*/**
+          if-no-files-found: warn
+          retention-days: 7
