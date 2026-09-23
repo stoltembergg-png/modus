@@ -1,0 +1,36 @@
+name: apply-composer-radius-tmp
+on:
+  push:
+    branches: [cursor/react-bits-ui-polish-5588]
+    paths:
+      - .github/workflows/apply-composer-radius-tmp.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, '[apply-composer-radius]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/react-bits-ui-polish-5588
+      - name: Apply Composer radius nudge
+        run: |
+          set -euo pipefail
+          FILE=apps/desktop/src/renderer/src/features/composer/Composer.tsx
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("apps/desktop/src/renderer/src/features/composer/Composer.tsx")
+          text = p.read_text()
+          old = 'export const COMPOSER_RADIUS_CLASS = "rounded-[12px]";'
+          new = 'export const COMPOSER_RADIUS_CLASS = "rounded-[14px]";'
+          if old not in text:
+              raise SystemExit("radius line not found as rounded-[12px]")
+          p.write_text(text.replace(old, new, 1))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/apply-composer-radius-tmp.yml
+          git add "$FILE" .github/workflows/apply-composer-radius-tmp.yml
+          git commit -m "style(composer): nudge radius toward React Bits Prompt Bar"
+          git push
