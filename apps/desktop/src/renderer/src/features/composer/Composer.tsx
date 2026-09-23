@@ -57,7 +57,7 @@ import { type SlashActionItem, type SlashItem, useComposerSlash } from "./useCom
 const COMPOSER_PLACEHOLDER = "What will you build with Modus?";
 
 /** Shared with read-only user bubbles — single radius/chrome truth for the prompt shell. */
-export const COMPOSER_RADIUS_CLASS = "rounded-[12px]";
+export const COMPOSER_RADIUS_CLASS = "rounded-[14px]";
 export const COMPOSER_SHELL_CLASS = cn(
   "border border-composer-border bg-surface shadow-composer-edge",
   COMPOSER_RADIUS_CLASS,
