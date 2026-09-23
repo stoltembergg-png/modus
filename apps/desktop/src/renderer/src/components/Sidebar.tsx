@@ -48,7 +48,7 @@ const SB_ROW =
 const SB_SESSION =
   "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-xs font-normal transition-colors";
 const SB_NEST = "pl-5"; // 20px = one rail
-const SB_ICON = 16;
+const SB_ICON = 18;
 const SB_STROKE = 1.5;
 
 type SidebarProps = {

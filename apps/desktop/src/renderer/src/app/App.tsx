@@ -47,6 +47,7 @@ import type {
 import modusLogo from "../assets/modus-logo.png";
 import { SIDEBAR_MIN_WIDTH, SIDEBAR_TRANSITION, Sidebar } from "../components/Sidebar";
 import { ChromeMoreMenu } from "../components/ui/ChromeMoreMenu";
+import { FadeContent } from "../components/ui/FadeContent";
 import { ImageViewerProvider } from "../components/ui/ImageViewer";
 import { ModusBot } from "../components/ui/ModusBot";
 import { ModusLoadingFallback } from "../components/ui/ModusLoadingMark";
@@ -830,297 +831,306 @@ export function App() {
             <div className="app-root flex h-screen flex-col bg-panel text-fg">
               <MenuBar />
 
-              <div
-                className="flex min-h-0 min-w-0 flex-1 bg-panel"
-                ref={layoutRowRef}
-                style={
-                  settingsOpen
-                    ? undefined
-                    : {
-                        gap: WORKSPACE_GUTTER,
-                        padding: WORKSPACE_GUTTER,
-                        paddingLeft: responsiveSidebarOpen ? 0 : WORKSPACE_GUTTER,
-                      }
-                }
-              >
-                {settingsOpen ? (
-                  <Suspense fallback={<ModusLoadingFallback />}>
-                    <SettingsPanel
-                      onClose={() => setSettingsOpen(false)}
-                      onRefresh={refreshModelSettings}
-                      onRefreshCatalog={refreshModelCatalog}
-                      state={modelSettings}
-                      workspaces={workspaces}
-                      workspaceCwd={activeWorkspace?.rootPath}
-                    />
-                  </Suspense>
-                ) : (
-                  <>
-                    <Sidebar
-                      activityBySession={activityBySession}
-                      agentSessions={rootSessions}
-                      canCreateSession={canCreateSession}
-                      onArchiveSession={(session) => void archiveSession(session)}
-                      onDeleteSession={(session) => void deleteSession(session)}
-                      onListArchivedSessions={(workspaceId) =>
-                        window.modus.agent.listArchived(workspaceId)
-                      }
-                      onPinProject={(id, pinned) => void pinProject(id, pinned)}
-                      onPinSession={(session, pinned) => void pinSession(session, pinned)}
-                      onRenameProject={(id, displayName) => void renameProject(id, displayName)}
-                      onArchiveProjectChats={(id) => void archiveProjectChats(id)}
-                      onDeleteProjectChats={(id) => void deleteProjectChats(id)}
-                      onRemoveProject={(id) => void removeProject(id)}
-                      onRestoreSession={(session) => void restoreSession(session)}
-                      onRevealProject={(id) => void revealProject(id)}
-                      onNewSession={() => openNewChat()}
-                      onNewWorkspaceSession={(workspace) => openNewChat(workspace)}
-                      onOpenChange={setSidebarOpen}
-                      onOpenWorkspace={() => void openWorkspace()}
-                      onOpenSettings={() => setSettingsOpen(true)}
-                      onSelectSession={selectSession}
-                      onWidthChange={setSidebarWidth}
-                      activeSessionId={activeSessionId}
-                      maxWidth={sidebarMaxWidth}
-                      open={responsiveSidebarOpen}
-                      width={sidebarWidth}
-                      workspaces={workspaces}
-                    />
+              <FadeContent blur className="flex min-h-0 min-w-0 flex-1 flex-col" duration={0.7}>
+                <div
+                  className="flex min-h-0 min-w-0 flex-1 bg-panel"
+                  ref={layoutRowRef}
+                  style={
+                    settingsOpen
+                      ? undefined
+                      : {
+                          gap: WORKSPACE_GUTTER,
+                          padding: WORKSPACE_GUTTER,
+                          paddingLeft: responsiveSidebarOpen ? 0 : WORKSPACE_GUTTER,
+                        }
+                  }
+                >
+                  {settingsOpen ? (
+                    <Suspense fallback={<ModusLoadingFallback />}>
+                      <SettingsPanel
+                        onClose={() => setSettingsOpen(false)}
+                        onRefresh={refreshModelSettings}
+                        onRefreshCatalog={refreshModelCatalog}
+                        state={modelSettings}
+                        workspaces={workspaces}
+                        workspaceCwd={activeWorkspace?.rootPath}
+                      />
+                    </Suspense>
+                  ) : (
+                    <>
+                      <Sidebar
+                        activityBySession={activityBySession}
+                        agentSessions={rootSessions}
+                        canCreateSession={canCreateSession}
+                        onArchiveSession={(session) => void archiveSession(session)}
+                        onDeleteSession={(session) => void deleteSession(session)}
+                        onListArchivedSessions={(workspaceId) =>
+                          window.modus.agent.listArchived(workspaceId)
+                        }
+                        onPinProject={(id, pinned) => void pinProject(id, pinned)}
+                        onPinSession={(session, pinned) => void pinSession(session, pinned)}
+                        onRenameProject={(id, displayName) => void renameProject(id, displayName)}
+                        onArchiveProjectChats={(id) => void archiveProjectChats(id)}
+                        onDeleteProjectChats={(id) => void deleteProjectChats(id)}
+                        onRemoveProject={(id) => void removeProject(id)}
+                        onRestoreSession={(session) => void restoreSession(session)}
+                        onRevealProject={(id) => void revealProject(id)}
+                        onNewSession={() => openNewChat()}
+                        onNewWorkspaceSession={(workspace) => openNewChat(workspace)}
+                        onOpenChange={setSidebarOpen}
+                        onOpenWorkspace={() => void openWorkspace()}
+                        onOpenSettings={() => setSettingsOpen(true)}
+                        onSelectSession={selectSession}
+                        onWidthChange={setSidebarWidth}
+                        activeSessionId={activeSessionId}
+                        maxWidth={sidebarMaxWidth}
+                        open={responsiveSidebarOpen}
+                        width={sidebarWidth}
+                        workspaces={workspaces}
+                      />
 
-                    <m.main
-                      className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
-                      layout={!reduceMotion}
-                      layoutDependency={responsiveSidebarOpen}
-                      transition={{ layout: SIDEBAR_TRANSITION }}
-                    >
-                      <header className="toolbar-row relative flex shrink-0 items-center px-3">
-                        <div className="app-no-drag flex min-w-0 flex-1 items-center gap-1.5">
-                          <AnimatePresence initial={false}>
-                            {!responsiveSidebarOpen ? (
-                              <m.div
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -4 }}
-                                initial={{ opacity: 0, x: -4 }}
-                                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                              >
-                                <ToolbarButton
-                                  label="Show left sidebar"
-                                  onClick={() => setSidebarOpen(true)}
+                      <m.main
+                        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
+                        layout={!reduceMotion}
+                        layoutDependency={responsiveSidebarOpen}
+                        transition={{ layout: SIDEBAR_TRANSITION }}
+                      >
+                        <header className="toolbar-row relative flex shrink-0 items-center px-3">
+                          <div className="app-no-drag flex min-w-0 flex-1 items-center gap-1.5">
+                            <AnimatePresence initial={false}>
+                              {!responsiveSidebarOpen ? (
+                                <m.div
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -4 }}
+                                  initial={{ opacity: 0, x: -4 }}
+                                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                                 >
-                                  <IconLayoutSidebar
-                                    size={TOOLBAR_ICON.size}
-                                    stroke={TOOLBAR_ICON.stroke}
-                                  />
-                                </ToolbarButton>
-                              </m.div>
-                            ) : null}
-                          </AnimatePresence>
-                          {activeSession ? (
-                            <SessionTitlePopover
-                              branch={branch}
-                              contextUsage={contextUsageBySession[activeSession.id]}
-                              modelId={activeSession.model ?? model}
-                              models={models}
-                              session={activeSession}
-                              workspace={
-                                workspaceById.get(activeSession.workspaceId) ?? activeWorkspace
-                              }
-                            />
-                          ) : null}
-                        </div>
-                        <div className="flex flex-1 items-center justify-end pr-2">
-                          <HeaderActions
-                            activeWorkspace={activeWorkspace}
-                            branch={branch}
-                            environmentStats={environmentStats}
-                            inspectorOpen={responsiveInspectorOpen}
-                            onOpenSettings={() => setSettingsOpen(true)}
-                            onToggleInspector={() => setInspectorOpen((open) => !open)}
-                          />
-                        </div>
-                      </header>
-
-                      {sessionCreateError ? (
-                        <div className="mx-6 mb-2 rounded-md border border-danger/30 bg-danger/8 px-3 py-2 text-xs text-danger">
-                          {sessionCreateError}
-                        </div>
-                      ) : null}
-
-                      <AnimatePresence mode="wait">
-                        {activeSession ? (
-                          <m.div
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex min-h-0 min-w-0 flex-1"
-                            exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
-                            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-                            key={`conversation:${activeSession.id}`}
-                            layout={reduceMotion ? false : "position"}
-                            layoutDependency={responsiveSidebarOpen}
-                            transition={{
-                              ...SIDEBAR_TRANSITION,
-                              duration: reduceMotion ? 0 : SIDEBAR_TRANSITION.duration,
-                              layout: SIDEBAR_TRANSITION,
-                            }}
-                          >
-                            <Suspense fallback={<ModusLoadingFallback />}>
-                              <ChatPane
-                                composerDraft={composerDraftBySession[activeSession.id]}
+                                  <ToolbarButton
+                                    label="Show left sidebar"
+                                    onClick={() => setSidebarOpen(true)}
+                                  >
+                                    <IconLayoutSidebar
+                                      size={TOOLBAR_ICON.size}
+                                      stroke={TOOLBAR_ICON.stroke}
+                                    />
+                                  </ToolbarButton>
+                                </m.div>
+                              ) : null}
+                            </AnimatePresence>
+                            {activeSession ? (
+                              <SessionTitlePopover
+                                branch={branch}
                                 contextUsage={contextUsageBySession[activeSession.id]}
-                                defaultModel={model}
-                                hub={hubRef.current}
-                                initialEvents={initialEventsBySession[activeSession.id]}
-                                key={activeSession.id}
+                                modelId={activeSession.model ?? model}
                                 models={models}
-                                onModelChange={setModel}
-                                onModelConfigChange={(next, thinkingVariant) =>
-                                  void updateModelThinking(next, thinkingVariant)
-                                }
-                                onOpenReview={openReview}
-                                onComposerDraftChange={(update) =>
-                                  updateSessionComposerDraft(activeSession.id, update)
-                                }
-                                onInitialEventsConsumed={(sessionId) => {
-                                  setInitialEventsBySession((current) => {
-                                    if (!current[sessionId]) {
-                                      return current;
-                                    }
-                                    const next = { ...current };
-                                    delete next[sessionId];
-                                    return next;
-                                  });
-                                }}
-                                onOpenPlan={openPlan}
-                                onOpenFile={openWorkspaceFile}
-                                onOpenTerminal={openTerminal}
-                                onOpenSubagent={openSubagent}
-                                subagentSessions={agentSessions.filter(
-                                  (session) => session.parentSessionId === activeSession.id,
-                                )}
-                                {...(responsiveInspectorOpen &&
-                                inspectorTab === "subagents" &&
-                                selectedSubagentId
-                                  ? { inspectorLiveSessionId: selectedSubagentId }
-                                  : {})}
-                                onPlanUpdated={rememberActivePlan}
-                                onSessionsChanged={() => void refreshSessions()}
                                 session={activeSession}
                                 workspace={
                                   workspaceById.get(activeSession.workspaceId) ?? activeWorkspace
                                 }
                               />
-                            </Suspense>
-                          </m.div>
-                        ) : (
-                          <m.div
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex min-h-0 flex-1 flex-col items-center justify-center px-6"
-                            exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
-                            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-                            key="hero"
-                            transition={{
-                              duration: reduceMotion ? 0 : 0.12,
-                              ease: "easeOut",
-                            }}
-                          >
-                            <div className="w-full max-w-[680px] -translate-y-4">
-                              <div className="mb-5 flex justify-center">
-                                <ModusBot className="size-12" />
-                              </div>
-                              <Composer
-                                canSubmit={canCreateSession}
-                                contextItems={heroContextItems}
-                                cwd={activeWorkspace?.rootPath}
-                                footer={
-                                  <HeroEnvironmentTray
-                                    activeWorkspace={activeWorkspace}
-                                    branch={branch}
-                                    cwd={activeCwd}
-                                    onError={setSessionCreateError}
-                                    onOpenFolder={() => void openWorkspace()}
-                                    onSelectWorkspace={openNewChat}
-                                    workspaces={workspaces}
-                                  />
-                                }
-                                mode={heroMode}
-                                model={model}
-                                models={models}
-                                onContextChange={setHeroContextItems}
-                                onModeChange={setHeroMode}
-                                onModelChange={(next) => void changeDefaultModel(next)}
-                                onModelConfigChange={(next, thinkingVariant) =>
-                                  void updateModelThinking(next, thinkingVariant)
-                                }
-                                onSubmit={(message, context, delivery, attachments, skills, mode) =>
-                                  void submitHeroPrompt(
+                            ) : null}
+                          </div>
+                          <div className="flex flex-1 items-center justify-end pr-2">
+                            <HeaderActions
+                              activeWorkspace={activeWorkspace}
+                              branch={branch}
+                              environmentStats={environmentStats}
+                              inspectorOpen={responsiveInspectorOpen}
+                              onOpenSettings={() => setSettingsOpen(true)}
+                              onToggleInspector={() => setInspectorOpen((open) => !open)}
+                            />
+                          </div>
+                        </header>
+
+                        {sessionCreateError ? (
+                          <div className="mx-6 mb-2 rounded-md border border-danger/30 bg-danger/8 px-3 py-2 text-xs text-danger">
+                            {sessionCreateError}
+                          </div>
+                        ) : null}
+
+                        <AnimatePresence mode="wait">
+                          {activeSession ? (
+                            <m.div
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex min-h-0 min-w-0 flex-1"
+                              exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
+                              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                              key={`conversation:${activeSession.id}`}
+                              layout={reduceMotion ? false : "position"}
+                              layoutDependency={responsiveSidebarOpen}
+                              transition={{
+                                ...SIDEBAR_TRANSITION,
+                                duration: reduceMotion ? 0 : SIDEBAR_TRANSITION.duration,
+                                layout: SIDEBAR_TRANSITION,
+                              }}
+                            >
+                              <Suspense fallback={<ModusLoadingFallback />}>
+                                <ChatPane
+                                  composerDraft={composerDraftBySession[activeSession.id]}
+                                  contextUsage={contextUsageBySession[activeSession.id]}
+                                  defaultModel={model}
+                                  hub={hubRef.current}
+                                  initialEvents={initialEventsBySession[activeSession.id]}
+                                  key={activeSession.id}
+                                  models={models}
+                                  onModelChange={setModel}
+                                  onModelConfigChange={(next, thinkingVariant) =>
+                                    void updateModelThinking(next, thinkingVariant)
+                                  }
+                                  onOpenReview={openReview}
+                                  onComposerDraftChange={(update) =>
+                                    updateSessionComposerDraft(activeSession.id, update)
+                                  }
+                                  onInitialEventsConsumed={(sessionId) => {
+                                    setInitialEventsBySession((current) => {
+                                      if (!current[sessionId]) {
+                                        return current;
+                                      }
+                                      const next = { ...current };
+                                      delete next[sessionId];
+                                      return next;
+                                    });
+                                  }}
+                                  onOpenPlan={openPlan}
+                                  onOpenFile={openWorkspaceFile}
+                                  onOpenTerminal={openTerminal}
+                                  onOpenSubagent={openSubagent}
+                                  subagentSessions={agentSessions.filter(
+                                    (session) => session.parentSessionId === activeSession.id,
+                                  )}
+                                  {...(responsiveInspectorOpen &&
+                                  inspectorTab === "subagents" &&
+                                  selectedSubagentId
+                                    ? { inspectorLiveSessionId: selectedSubagentId }
+                                    : {})}
+                                  onPlanUpdated={rememberActivePlan}
+                                  onSessionsChanged={() => void refreshSessions()}
+                                  session={activeSession}
+                                  workspace={
+                                    workspaceById.get(activeSession.workspaceId) ?? activeWorkspace
+                                  }
+                                />
+                              </Suspense>
+                            </m.div>
+                          ) : (
+                            <m.div
+                              animate={{ opacity: 1, y: 0 }}
+                              className="flex min-h-0 flex-1 flex-col items-center justify-center px-6"
+                              exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
+                              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                              key="hero"
+                              transition={{
+                                duration: reduceMotion ? 0 : 0.12,
+                                ease: "easeOut",
+                              }}
+                            >
+                              <div className="w-full max-w-[680px] -translate-y-4">
+                                <div className="mb-5 flex justify-center">
+                                  <ModusBot className="size-12" />
+                                </div>
+                                <Composer
+                                  canSubmit={canCreateSession}
+                                  contextItems={heroContextItems}
+                                  cwd={activeWorkspace?.rootPath}
+                                  footer={
+                                    <HeroEnvironmentTray
+                                      activeWorkspace={activeWorkspace}
+                                      branch={branch}
+                                      cwd={activeCwd}
+                                      onError={setSessionCreateError}
+                                      onOpenFolder={() => void openWorkspace()}
+                                      onSelectWorkspace={openNewChat}
+                                      workspaces={workspaces}
+                                    />
+                                  }
+                                  mode={heroMode}
+                                  model={model}
+                                  models={models}
+                                  onContextChange={setHeroContextItems}
+                                  onModeChange={setHeroMode}
+                                  onModelChange={(next) => void changeDefaultModel(next)}
+                                  onModelConfigChange={(next, thinkingVariant) =>
+                                    void updateModelThinking(next, thinkingVariant)
+                                  }
+                                  onSubmit={(
                                     message,
                                     context,
                                     delivery,
                                     attachments,
                                     skills,
                                     mode,
-                                  )
-                                }
-                                workspaceId={activeWorkspace?.id}
-                              />
-                            </div>
-                          </m.div>
-                        )}
-                      </AnimatePresence>
-                    </m.main>
+                                  ) =>
+                                    void submitHeroPrompt(
+                                      message,
+                                      context,
+                                      delivery,
+                                      attachments,
+                                      skills,
+                                      mode,
+                                    )
+                                  }
+                                  workspaceId={activeWorkspace?.id}
+                                />
+                              </div>
+                            </m.div>
+                          )}
+                        </AnimatePresence>
+                      </m.main>
 
-                    {responsiveInspectorOpen ? (
-                      <Suspense
-                        fallback={
-                          <div
-                            className="flex min-h-0 min-w-0 shrink-0 overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
-                            style={{ width: inspectorWidth }}
-                          >
-                            <ModusLoadingFallback />
-                          </div>
-                        }
-                      >
-                        <Inspector
-                          activeWorkspace={activeWorkspace}
-                          contextUsageBySession={contextUsageBySession}
-                          cwd={reviewCwd ?? activeCwd}
-                          defaultModel={model}
-                          hub={hubRef.current}
-                          sessionId={activeSession?.id}
-                          maxWidth={inspectorMaxWidth}
-                          models={models}
-                          onModelChange={setModel}
-                          onModelConfigChange={(next, thinkingVariant) =>
-                            void updateModelThinking(next, thinkingVariant)
+                      {responsiveInspectorOpen ? (
+                        <Suspense
+                          fallback={
+                            <div
+                              className="flex min-h-0 min-w-0 shrink-0 overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
+                              style={{ width: inspectorWidth }}
+                            >
+                              <ModusLoadingFallback />
+                            </div>
                           }
-                          onOpenChange={setInspectorOpen}
-                          onOpenReview={openReview}
-                          onOpenSettings={() => setSettingsOpen(true)}
-                          onOpenSubagent={openSubagent}
-                          onPlanUpdated={rememberActivePlan}
-                          onSelectSubagent={setSelectedSubagentId}
-                          onSessionsChanged={() => void refreshSessions()}
-                          onTabChange={setInspectorTab}
-                          onWidthChange={setInspectorWidth}
-                          onAddToChat={addContextToChat}
-                          onRevealConsumed={() => setFilesRevealPath(undefined)}
-                          onRevealTerminalConsumed={() => setTerminalRevealId(undefined)}
-                          revealPath={filesRevealPath}
-                          revealTerminalId={terminalRevealId}
-                          open={inspectorOpen}
-                          {...(activeSession && activePlanBySession[activeSession.id]
-                            ? { plan: activePlanBySession[activeSession.id] }
-                            : {})}
-                          securityState={securityState}
-                          selectedSubagentId={selectedSubagentId}
-                          sessions={agentSessions}
-                          tab={inspectorTab}
-                          width={inspectorWidth}
-                        />
-                      </Suspense>
-                    ) : null}
-                  </>
-                )}
-              </div>
+                        >
+                          <Inspector
+                            activeWorkspace={activeWorkspace}
+                            contextUsageBySession={contextUsageBySession}
+                            cwd={reviewCwd ?? activeCwd}
+                            defaultModel={model}
+                            hub={hubRef.current}
+                            sessionId={activeSession?.id}
+                            maxWidth={inspectorMaxWidth}
+                            models={models}
+                            onModelChange={setModel}
+                            onModelConfigChange={(next, thinkingVariant) =>
+                              void updateModelThinking(next, thinkingVariant)
+                            }
+                            onOpenChange={setInspectorOpen}
+                            onOpenReview={openReview}
+                            onOpenSettings={() => setSettingsOpen(true)}
+                            onOpenSubagent={openSubagent}
+                            onPlanUpdated={rememberActivePlan}
+                            onSelectSubagent={setSelectedSubagentId}
+                            onSessionsChanged={() => void refreshSessions()}
+                            onTabChange={setInspectorTab}
+                            onWidthChange={setInspectorWidth}
+                            onAddToChat={addContextToChat}
+                            onRevealConsumed={() => setFilesRevealPath(undefined)}
+                            onRevealTerminalConsumed={() => setTerminalRevealId(undefined)}
+                            revealPath={filesRevealPath}
+                            revealTerminalId={terminalRevealId}
+                            open={inspectorOpen}
+                            {...(activeSession && activePlanBySession[activeSession.id]
+                              ? { plan: activePlanBySession[activeSession.id] }
+                              : {})}
+                            securityState={securityState}
+                            selectedSubagentId={selectedSubagentId}
+                            sessions={agentSessions}
+                            tab={inspectorTab}
+                            width={inspectorWidth}
+                          />
+                        </Suspense>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </FadeContent>
             </div>
           </ImageViewerProvider>
         </NativeSurfaceProvider>
