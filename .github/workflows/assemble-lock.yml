@@ -1,0 +1,32 @@
+name: Assemble package-lock
+on:
+  push:
+    branches: [cursor/cleanup-maintainability-67ea]
+    paths: ['.cursor-tmp/lock/READY']
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/cleanup-maintainability-67ea
+          fetch-depth: 0
+      - name: Assemble and commit package-lock.json
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import pathlib, base64, hashlib
+          parts = sorted(pathlib.Path('.cursor-tmp/lock').glob('part-*.b64'))
+          assert parts, 'no parts'
+          data = b''.join(base64.b64decode(p.read_text()) for p in parts)
+          pathlib.Path('package-lock.json').write_bytes(data)
+          print('wrote', len(data), 'sha256', hashlib.sha256(data).hexdigest()[:16])
+          PY
+          rm -rf .cursor-tmp
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: refresh package-lock after stub and drizzle removal"
+          git push
