@@ -16,26 +16,25 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.19'
       - name: Regenerate package-lock.json
         run: |
           set -euo pipefail
+          rm -f package-lock.json
           npm install --package-lock-only --ignore-scripts
           python3 - <<'PY'
+          import json
           from pathlib import Path
-          data = Path('package-lock.json').read_text()
-          assert 'drizzle' not in data, 'drizzle still present'
-          assert '"packages/core"' not in data and '"packages/ui"' not in data
-          print('lock size', len(data))
+          raw = Path('package-lock.json').read_text()
+          assert 'drizzle' not in raw, 'drizzle still present'
+          pkgs = json.loads(raw)['packages']
+          stale = [k for k in pkgs if k.startswith('packages/')]
+          assert not stale, stale
+          print('lock size', len(raw), 'entries', len(pkgs))
           PY
           rm -rf .cursor-tmp
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git add -u .cursor-tmp || true
-          if git diff --cached --quiet; then
-            echo 'No lockfile changes'
-            exit 0
-          fi
+          git add -A
           git commit -m "chore: refresh package-lock after stub and drizzle removal"
           git push
