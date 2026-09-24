@@ -424,24 +424,24 @@ export function App() {
   }
 
   async function createSession(workspace: WorkspaceInfo | null): Promise<AgentSessionInfo | null> {
-    if (!workspace) {
-      return null;
-    }
     if (!model) {
       setSettingsOpen(true);
       setSessionCreateError("No model is configured. Connect a provider in Settings first.");
       return null;
     }
     try {
+      const target =
+        workspace && !workspace.inbox ? workspace : await window.modus.workspace.ensureChats();
       const session = await window.modus.agent.create({
-        workspaceId: workspace.id,
-        cwd: workspace.rootPath,
+        workspaceId: target.id,
+        cwd: target.rootPath,
         ...(model ? { model } : {}),
         title: "New chat",
       });
       hubRef.current.prepare(session.id);
       setSessionCreateError(undefined);
-      setActiveWorkspace(workspace);
+      // Keep project selection cleared for inbox chats so they stay under Chats.
+      setActiveWorkspace(target.inbox ? null : target);
       setAgentSessions((current) => {
         const exists = current.some((item) => item.id === session.id);
         return exists
@@ -460,9 +460,9 @@ export function App() {
   function selectSession(session: AgentSessionInfo): void {
     setSessionCreateError(undefined);
     setSettingsOpen(false);
-    setActiveWorkspace(
-      workspaces.find((workspace) => workspace.id === session.workspaceId) ?? activeWorkspace,
-    );
+    // Inbox / orphan chats stay under Chats — clear the project folder selection.
+    const project = workspaces.find((workspace) => workspace.id === session.workspaceId);
+    setActiveWorkspace(project && !project.inbox ? project : null);
     setAgentSessions((current) => {
       const exists = current.some((item) => item.id === session.id);
       return exists
@@ -776,7 +776,7 @@ export function App() {
     void window.modus.mcp.sync(workspaceRoot).catch(() => {});
   }, [workspaceRoot]);
 
-  const canCreateSession = Boolean(activeWorkspace) && Boolean(model);
+  const canCreateSession = Boolean(model);
   const workspaceById = useMemo(
     () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
     [workspaces],
@@ -1311,7 +1311,7 @@ function HeroEnvironmentTray({
   branch: string | undefined;
   cwd: string | undefined;
   workspaces: WorkspaceInfo[];
-  onSelectWorkspace(workspace: WorkspaceInfo): void;
+  onSelectWorkspace(workspace: WorkspaceInfo | null): void;
   onOpenFolder(): void;
   onError(message: string): void;
 }) {
@@ -1349,7 +1349,7 @@ function WorkspaceMenu({
 }: {
   activeWorkspace: WorkspaceInfo | null;
   workspaces: WorkspaceInfo[];
-  onSelect(workspace: WorkspaceInfo): void;
+  onSelect(workspace: WorkspaceInfo | null): void;
   onOpenFolder(): void;
   triggerClassName?: string;
 }) {
@@ -1359,12 +1359,25 @@ function WorkspaceMenu({
         <span className="toolbar-icon">
           <IconFolder size={18} stroke={1.7} />
         </span>
-        <span className="max-w-40 truncate">{activeWorkspace?.displayName ?? "No workspace"}</span>
+        <span className="max-w-40 truncate">{activeWorkspace?.displayName ?? "No folder"}</span>
         <IconChevronDown className="toolbar-icon" size={13} stroke={2} />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="start" side="bottom" sideOffset={6}>
           <Menu.Popup className="scroll-thin origin-(--transform-origin) max-h-[360px] min-w-[260px] overflow-y-auto popup-chrome p-1">
+            <Menu.Item
+              className="flex cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-fg text-sm outline-none transition-colors select-none data-highlighted:bg-hover"
+              closeOnClick
+              onClick={() => onSelect(null)}
+            >
+              <span className="flex size-4 shrink-0 items-center justify-center text-accent">
+                {!activeWorkspace ? <IconCheck size={14} stroke={2} /> : null}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate">No folder</span>
+                <span className="truncate text-2xs text-fg-faint">Goes to Chats in the sidebar</span>
+              </span>
+            </Menu.Item>
             {workspaces.length === 0 ? (
               <div className="px-2.5 py-3 text-center text-2xs text-fg-faint">
                 No recent workspaces
@@ -1397,6 +1410,7 @@ function WorkspaceMenu({
             <div className="my-1 h-px bg-hairline" />
             <Menu.Item
               className="flex cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-fg text-sm outline-none transition-colors select-none data-highlighted:bg-hover"
+              closeOnClick
               onClick={onOpenFolder}
             >
               <span className="flex size-4 shrink-0 items-center justify-center text-fg-subtle">

@@ -19,6 +19,7 @@ const api: ModusApi = {
   workspace: {
     open: () => ipcRenderer.invoke("workspace:open"),
     list: () => ipcRenderer.invoke("workspace:list"),
+    ensureChats: () => ipcRenderer.invoke("workspace:ensure-chats"),
     pin: (input) => ipcRenderer.invoke("workspace:pin", input),
     rename: (input) => ipcRenderer.invoke("workspace:rename", input),
     archiveChats: (id) => ipcRenderer.invoke("workspace:archive-chats", { id }),
