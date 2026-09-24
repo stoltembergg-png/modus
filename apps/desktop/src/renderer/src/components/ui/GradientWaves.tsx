@@ -3,6 +3,8 @@
  * https://reactbits.dev/backgrounds/gradient-waves (DavidHDev/react-bits).
  * Uses their raymarched plasma shader; colors follow Modus theme tokens.
  */
+
+import { m, useReducedMotion } from "motion/react";
 import { Mesh, Program, Renderer, Triangle } from "ogl";
 import { useEffect, useRef, useState } from "react";
 
@@ -34,6 +36,8 @@ type GradientWavesProps = {
   grain?: boolean;
   grainIntensity?: number;
   className?: string;
+  /** Fade in/out duration in seconds (AnimatePresence exit). */
+  fadeDuration?: number;
 };
 
 type GradientWavesCtx = {
@@ -237,11 +241,13 @@ export function GradientWaves({
   parallaxStrength = 0.5,
   grain = true,
   grainIntensity = 0.04,
+  fadeDuration = 0.45,
   className,
 }: GradientWavesProps = {}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const enableMouseRef = useRef(mouseInteraction);
   const [webglReady, setWebglReady] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   // Mount once — uniforms sync in the effect below (React Bits pattern).
   // biome-ignore lint/correctness/useExhaustiveDependencies: WebGL context is created once; props apply via ctxMap sync effect
@@ -525,11 +531,22 @@ export function GradientWaves({
   ]);
 
   return (
-    <div
+    <m.div
+      animate={{ opacity: 1 }}
       aria-hidden="true"
       className={`modus-gradient-waves pointer-events-none absolute inset-px z-0${className ? ` ${className}` : ""}`}
-      data-webgl={webglReady ? "ready" : "fallback"}
-      ref={containerRef}
-    />
+      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      transition={{
+        duration: reduceMotion ? 0 : fadeDuration,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+    >
+      <div
+        className="absolute inset-0 overflow-hidden rounded-[inherit]"
+        data-webgl={webglReady ? "ready" : "fallback"}
+        ref={containerRef}
+      />
+    </m.div>
   );
 }
