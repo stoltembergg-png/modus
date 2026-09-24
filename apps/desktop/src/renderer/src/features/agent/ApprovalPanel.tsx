@@ -1,4 +1,5 @@
 import { IconCornerDownLeft, IconLock } from "@tabler/icons-react";
+import { m, useReducedMotion } from "motion/react";
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PermissionDecision, PermissionRequest } from "../../../../shared/contracts";
 import { cn } from "../../lib/cn";
@@ -43,6 +44,7 @@ export function ApprovalPanel({ onDecide, request }: ApprovalPanelProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const panelRef = useRef<HTMLElement | null>(null);
+  const reduceMotion = useReducedMotion();
   const target = request.target.trim() || request.action;
   const title = useMemo(() => approvalTitle(request.action), [request.action]);
 
@@ -83,12 +85,15 @@ export function ApprovalPanel({ onDecide, request }: ApprovalPanelProps) {
   }
 
   return (
-    <section
+    <m.section
+      animate={{ opacity: 1, y: 0 }}
       aria-label="Tool approval"
       className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-composer outline-none focus-visible:shadow-composer-focus"
+      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
       onKeyDown={handleKeyDown}
       ref={panelRef}
       tabIndex={-1}
+      transition={{ duration: reduceMotion ? 0 : 0.14, ease: "easeOut" }}
     >
       <div className="p-3">
         <div className="flex min-w-0 items-start gap-2.5">
@@ -170,7 +175,7 @@ export function ApprovalPanel({ onDecide, request }: ApprovalPanelProps) {
           </button>
         </div>
       </div>
-    </section>
+    </m.section>
   );
 }
 
