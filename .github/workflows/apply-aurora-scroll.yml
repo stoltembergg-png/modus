@@ -1,0 +1,36 @@
+name: apply-aurora-scroll
+on:
+  push:
+    branches: [cursor/aurora-scroll-sidebar-5588]
+    paths:
+      - .github/workflows/apply-aurora-scroll.yml
+      - .github/agent-staging/aurora-mod.patch
+permissions:
+  contents: write
+concurrency:
+  group: apply-aurora-scroll
+  cancel-in-progress: true
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/aurora-scroll-sidebar-5588
+          fetch-depth: 0
+      - name: Apply Aurora/ScrollReveal sidebar patch
+        run: |
+          set -euo pipefail
+          test -f .github/agent-staging/aurora-mod.patch
+          git apply .github/agent-staging/aurora-mod.patch
+          rm -rf .github/agent-staging
+          rm -f .github/workflows/apply-aurora-scroll.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "feat(ui): Aurora hero, session ScrollReveal, fixed sidebar toggle"
+          git push
