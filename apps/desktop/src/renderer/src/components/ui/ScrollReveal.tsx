@@ -101,6 +101,12 @@ export function ScrollReveal({
             }
       }
       className={cn(className)}
+      exit={{
+        opacity: 0,
+        y: -4,
+        filter: "blur(0px)",
+        transition: { duration: reduce ? 0 : 0.14, ease: "easeOut" },
+      }}
       initial={false}
       ref={ref}
       transition={{ duration: reduce ? 0 : 0.42, ease: EASE }}
