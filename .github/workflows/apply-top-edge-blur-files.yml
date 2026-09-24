@@ -25,28 +25,29 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          python3 <<'PY'
-          import base64, gzip
-          from pathlib import Path
-          staging = Path(".github/agent-staging")
-          def load_b64(stem: str) -> bytes:
-              single = staging / f"{stem}.gz.b64"
-              if single.exists():
-                  return base64.b64decode(single.read_text().strip())
-              parts = sorted(staging.glob(f"{stem}.gz.b64.part*"))
-              if not parts:
-                  raise SystemExit(f"missing payload for {stem}")
-              return base64.b64decode("".join(p.read_text().strip() for p in parts))
-          mapping = {
-            "apps/desktop/src/renderer/src/features/agent/Timeline.tsx": "apps__desktop__src__renderer__src__features__agent__Timeline.tsx",
-            "apps/desktop/src/renderer/src/features/agent/ChatPane.tsx": "apps__desktop__src__renderer__src__features__agent__ChatPane.tsx",
-            "apps/desktop/src/renderer/src/styles/app.css": "apps__desktop__src__renderer__src__styles__app.css",
+
+          decode() {
+            stem="$1"
+            dest="$2"
+            mkdir -p "$(dirname "$dest")"
+            if [ -f ".github/agent-staging/${stem}.gz.b64" ]; then
+              base64 -d < ".github/agent-staging/${stem}.gz.b64" | gzip -d > "$dest"
+            else
+              cat .github/agent-staging/"${stem}".gz.b64.part* | base64 -d | gzip -d > "$dest"
+            fi
+            echo "wrote $dest ($(wc -c < "$dest") bytes)"
           }
-          for dest, stem in mapping.items():
-              raw = gzip.decompress(load_b64(stem))
-              Path(dest).write_bytes(raw)
-              print("wrote", dest, len(raw))
-          PY
+
+          decode apps__desktop__src__renderer__src__features__agent__Timeline.tsx \
+            apps/desktop/src/renderer/src/features/agent/Timeline.tsx
+          decode apps__desktop__src__renderer__src__features__agent__ChatPane.tsx \
+            apps/desktop/src/renderer/src/features/agent/ChatPane.tsx
+          decode apps__desktop__src__renderer__src__styles__app.css \
+            apps/desktop/src/renderer/src/styles/app.css
+
+          grep -q chat-scroll-top-blur apps/desktop/src/renderer/src/styles/app.css
+          grep -qv PLACEHOLDER apps/desktop/src/renderer/src/features/agent/Timeline.tsx
+
           git add \
             apps/desktop/src/renderer/src/features/agent/Timeline.tsx \
             apps/desktop/src/renderer/src/features/agent/ChatPane.tsx \
