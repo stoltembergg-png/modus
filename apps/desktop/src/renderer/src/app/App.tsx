@@ -1020,7 +1020,7 @@ export function App() {
                               <Aurora blend={0.55} className="opacity-90" speed={0.85} />
                               <div className="relative z-10 w-full max-w-[680px] -translate-y-4">
                                 <div className="mb-5 flex justify-center">
-                                  <ModusBot className="size-12" />
+                                  <ModusBot className="size-20" />
                                 </div>
                                 <Composer
                                   canSubmit={canCreateSession}
