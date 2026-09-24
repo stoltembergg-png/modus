@@ -1707,6 +1707,47 @@ export function updateModelConfig(input: UpdateModelConfigInput): ModelInfo {
   return modelToInfo(model, getModelRegistry().hasConfiguredAuth(model), updated);
 }
 
+/** Enable or disable every model under a provider in one pass (Settings select-all). */
+export function setProviderModelsEnabled(provider: string, enabled: boolean): ModelProviderDetail {
+  const id = provider.trim();
+  if (!id) {
+    throw new Error("Provider id is required.");
+  }
+  const detail = getProviderDetail(id);
+  if (!detail) {
+    throw new Error(`Unknown provider: ${provider}`);
+  }
+
+  const modelRegistry = refreshRegistry();
+  const configs = new Map(listModelConfigRows().map((row) => [row.id, row]));
+  const providerConfig = getProviderConfig(id);
+  const source = providerConfig?.source === "custom" ? "custom" : "builtin";
+
+  for (const model of modelRegistry.getAll().filter((entry) => entry.provider === id)) {
+    const existing = configs.get(modelToId(model));
+    const thinking = thinkingStateForModel(model, existing);
+    upsertModelConfig({
+      provider: id,
+      modelId: model.id,
+      displayName: existing?.display_name ?? model.name ?? model.id,
+      source: existing?.source === "custom" ? "custom" : source,
+      enabled,
+      contextWindow: existing?.context_window ?? model.contextWindow,
+      maxTokens: existing?.max_tokens ?? model.maxTokens,
+      reasoning: Boolean(existing?.reasoning ?? model.reasoning),
+      thinkingLevel: thinking.selected.level,
+      thinkingVariant: thinking.selected.value,
+    });
+  }
+
+  refreshRegistry();
+  const next = getProviderDetail(id);
+  if (!next) {
+    throw new Error(`Unable to update models for provider: ${provider}`);
+  }
+  return next;
+}
+
 export function getModelInfo(modelId: string | undefined): ModelInfo | undefined {
   const model = findModel(modelId);
   if (!model) return undefined;

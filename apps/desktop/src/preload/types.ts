@@ -68,6 +68,7 @@ import type {
   UpdateModelConfigInput,
   UpsertCustomProviderInput,
   WorkingChangeStats,
+  WorkspaceAgentsState,
   WorkspaceInfo,
 } from "../shared/contracts";
 import type { StartupMetricInput } from "../shared/startup";
@@ -362,6 +363,11 @@ export type ModusApi = {
     /** Live connectivity probe for the custom provider form (nothing is saved). */
     testCustomProvider(input: TestCustomProviderInput): Promise<TestCustomProviderResult>;
     updateConfig(input: UpdateModelConfigInput): Promise<ModelInfo>;
+    /** Enable or disable every model for a provider (Settings select-all). */
+    setProviderModelsEnabled(input: {
+      provider: string;
+      enabled: boolean;
+    }): Promise<ModelProviderDetail>;
   };
   review: {
     start(input: {
@@ -388,6 +394,10 @@ export type ModusApi = {
   rules: {
     /** Detected project rule files (AGENTS.md, .cursor/rules…) with apply modes. */
     list(cwd: string): Promise<RuleFileInfo[]>;
+    /** Workspace AGENTS.md for the Settings editor. */
+    getAgents(cwd: string): Promise<WorkspaceAgentsState>;
+    /** Create or overwrite workspace AGENTS.md. */
+    saveAgents(input: { cwd: string; content: string }): Promise<WorkspaceAgentsState>;
   };
   personalization: {
     get(): Promise<PersonalizationState>;

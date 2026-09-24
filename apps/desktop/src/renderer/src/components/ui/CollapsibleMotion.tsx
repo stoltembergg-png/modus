@@ -4,13 +4,14 @@ import { cn } from "../../lib/cn";
 
 type CollapsibleMotionPreset = "default" | "compact" | "timeline";
 
+/** Slightly deliberate expand/collapse — short snappy times feel abrupt in panels. */
 const COLLAPSIBLE_MOTION = {
-  compact: 0.18,
-  default: 0.2,
-  timeline: 0.22,
+  compact: 0.3,
+  default: 0.34,
+  timeline: 0.36,
 } satisfies Record<CollapsibleMotionPreset, number>;
 
-const COLLAPSIBLE_EASE = [0.22, 1, 0.36, 1] as const;
+const COLLAPSIBLE_EASE = [0.25, 0.1, 0.25, 1] as const;
 
 export function CollapsibleMotion({
   children,

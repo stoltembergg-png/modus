@@ -471,6 +471,16 @@ export const personalizationSaveSchema = z.object({
   content: z.string().max(200_000),
 });
 
+export const rulesSaveAgentsSchema = z.object({
+  cwd: nonEmptyString,
+  content: z.string().max(200_000),
+});
+
+export const setProviderModelsEnabledSchema = z.object({
+  provider: nonEmptyString,
+  enabled: z.boolean(),
+});
+
 export const reviewStartSchema = z.object({
   cwd: nonEmptyString,
   sessionId: optionalNonEmptyString,

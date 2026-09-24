@@ -203,6 +203,8 @@ const api: ModusApi = {
     upsertCustomProvider: (input) => ipcRenderer.invoke("model:upsert-custom-provider", input),
     testCustomProvider: (input) => ipcRenderer.invoke("model:test-custom-provider", input),
     updateConfig: (input) => ipcRenderer.invoke("model:update-config", input),
+    setProviderModelsEnabled: (input) =>
+      ipcRenderer.invoke("model:set-provider-models-enabled", input),
   },
   review: {
     start: (input) => ipcRenderer.invoke("review:start", input),
@@ -223,6 +225,8 @@ const api: ModusApi = {
   },
   rules: {
     list: (cwd) => ipcRenderer.invoke("rules:list", cwd),
+    getAgents: (cwd) => ipcRenderer.invoke("rules:get-agents", cwd),
+    saveAgents: (input) => ipcRenderer.invoke("rules:save-agents", input),
   },
   personalization: {
     get: () => ipcRenderer.invoke("personalization:get"),

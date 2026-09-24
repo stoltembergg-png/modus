@@ -104,6 +104,8 @@ export const IPC_CHANNELS = {
   personalizationSave: "personalization:save",
   personalizationOpen: "personalization:open",
   rulesList: "rules:list",
+  rulesGetAgents: "rules:get-agents",
+  rulesSaveAgents: "rules:save-agents",
   skillsList: "skills:list",
   skillsGet: "skills:get",
   skillsCreate: "skills:create",
@@ -143,6 +145,7 @@ export const IPC_CHANNELS = {
   modelUpsertCustomProvider: "model:upsert-custom-provider",
   modelTestCustomProvider: "model:test-custom-provider",
   modelUpdateConfig: "model:update-config",
+  modelSetProviderModelsEnabled: "model:set-provider-models-enabled",
   // 自绘 titlebar：renderer 调 IPC 触发 window 操作，main 反推 maximize 状态以同步图标
   windowMinimize: "window:minimize",
   windowToggleMaximize: "window:toggle-maximize",

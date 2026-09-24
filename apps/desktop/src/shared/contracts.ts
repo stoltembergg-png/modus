@@ -140,6 +140,15 @@ export type RuleFileInfo = {
   size: number;
 };
 
+/** Workspace AGENTS.md editor state for Settings → Rules. */
+export type WorkspaceAgentsState = {
+  path: string;
+  relPath: "AGENTS.md";
+  exists: boolean;
+  content: string;
+  example: string;
+};
+
 /* ── Global personalization (Codex-style AGENTS.md guidance) ───────────── */
 
 export type PersonalizationState = {

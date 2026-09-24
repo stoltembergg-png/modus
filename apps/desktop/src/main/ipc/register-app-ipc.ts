@@ -41,6 +41,7 @@ import {
   refreshRemoteModelCatalog,
   respondProviderAuth,
   setDefaultModel,
+  setProviderModelsEnabled,
   startProviderAuth,
   testCustomProvider,
   updateModelConfig,
@@ -136,7 +137,7 @@ import {
 } from "../permissions/permission-store";
 import { onManagedProcessChange } from "../process/managed-process-bus";
 import { killManagedProcess, listManagedProcesses } from "../process/managed-process-facade";
-import { listRuleFiles } from "../rules/rules-service";
+import { getWorkspaceAgents, listRuleFiles, saveWorkspaceAgents } from "../rules/rules-service";
 import { createSkill, ensureSkillsDir, getSkill, listSkills } from "../skills/skills-service";
 import type { StartupTimeline } from "../startup/startup-timeline";
 import {
@@ -213,8 +214,10 @@ import {
   providerAuthStartSchema,
   questionRespondSchema,
   reviewStartSchema,
+  rulesSaveAgentsSchema,
   sessionIdSchema,
   sessionPinSchema,
+  setProviderModelsEnabledSchema,
   skillsCreateSchema,
   skillsGetSchema,
   startupMetricSchema,
@@ -1229,6 +1232,17 @@ export function registerAppIpc({
     return listRuleFiles(parseIpcInput(cwdSchema, cwd, IPC_CHANNELS.rulesList));
   });
 
+  ipcMain.handle(IPC_CHANNELS.rulesGetAgents, (event, cwd: string) => {
+    assertTrustedSender(event);
+    return getWorkspaceAgents(parseIpcInput(cwdSchema, cwd, IPC_CHANNELS.rulesGetAgents));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.rulesSaveAgents, (event, input) => {
+    assertTrustedSender(event);
+    const parsed = parseIpcInput(rulesSaveAgentsSchema, input, IPC_CHANNELS.rulesSaveAgents);
+    return saveWorkspaceAgents(parsed.cwd, parsed.content);
+  });
+
   ipcMain.handle(IPC_CHANNELS.skillsList, (event, cwd: string) => {
     assertTrustedSender(event);
     return listSkills(parseIpcInput(cwdSchema, cwd, IPC_CHANNELS.skillsList));
@@ -1433,6 +1447,16 @@ export function registerAppIpc({
     assertTrustedSender(event);
     const parsed = parseIpcInput(updateModelConfigSchema, input, IPC_CHANNELS.modelUpdateConfig);
     return updateModelConfig(parsed);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.modelSetProviderModelsEnabled, (event, input) => {
+    assertTrustedSender(event);
+    const parsed = parseIpcInput(
+      setProviderModelsEnabledSchema,
+      input,
+      IPC_CHANNELS.modelSetProviderModelsEnabled,
+    );
+    return setProviderModelsEnabled(parsed.provider, parsed.enabled);
   });
 
   // 自绘 titlebar 的窗口控制 IPC —— 走 sender-validated 通道，不暴露原始 ipcRenderer
