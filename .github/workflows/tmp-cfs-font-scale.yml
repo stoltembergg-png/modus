@@ -1,0 +1,66 @@
+name: tmp-cfs-font-scale
+on:
+  push:
+    paths:
+      - ".github/workflows/tmp-cfs-font-scale.yml"
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/conversation-font-scale-5588
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply conversation font scale
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          tl = Path("apps/desktop/src/renderer/src/features/agent/Timeline.tsx")
+          text = tl.read_text()
+          old = 'className="chat-column relative"'
+          new = 'className="chat-column conversation-type relative"'
+          if old not in text:
+              raise SystemExit("Timeline: expected chat-column class missing")
+          if "conversation-type" in text:
+              print("Timeline already has conversation-type")
+          else:
+              tl.write_text(text.replace(old, new, 1))
+          css = Path("apps/desktop/src/renderer/src/styles/app.css")
+          text = css.read_text()
+          needle = "/* Floating PDF chrome"
+          lines = [
+              "/*",
+              " * Conversation transcript type — ~10% under the global ramp so the reading",
+              " * column is denser than chrome/composer. Applied on the timeline column only",
+              " * (not the composer .chat-column). Heading em sizes in .modus-markdown follow.",
+              " */",
+              ".conversation-type {",
+              "  --text-2xs: calc(11px * var(--ui-scale) * 0.9);",
+              "  --text-xs: calc(12px * var(--ui-scale) * 0.9);",
+              "  --text-sm: calc(13px * var(--ui-scale) * 0.9);",
+              "  --text-md: calc(14px * var(--ui-scale) * 0.9);",
+              "  --text-lg: calc(15px * var(--ui-scale) * 0.9);",
+              "}",
+              "",
+          ]
+          block = "\n".join(lines) + "\n"
+          if ".conversation-type {" in text:
+              print("CSS already has .conversation-type")
+          else:
+              if needle not in text:
+                  raise SystemExit("CSS: PDF chrome anchor missing")
+              css.write_text(text.replace(needle, block + needle, 1))
+          PY
+          rm -f .github/workflows/tmp-cfs-font-scale.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "fix(ui): scale conversation transcript type ~10%"
+          git push
