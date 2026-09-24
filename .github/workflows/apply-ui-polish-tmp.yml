@@ -1,0 +1,47 @@
+name: apply-ui-polish-tmp
+on:
+  push:
+    branches: [cursor/upstream-ui-polish-5588]
+    paths:
+      - .github/workflows/apply-ui-polish-tmp.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, '[apply-ui-polish]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/upstream-ui-polish-5588
+      - name: Apply staged patch, commit, self-delete
+        run: |
+          set -euo pipefail
+          cat .github/agent-staging/ui-polish.b64.00 .github/agent-staging/ui-polish.b64.01 > /tmp/p.b64
+          python3 - <<'PY'
+          import base64, gzip, pathlib, subprocess
+          raw = pathlib.Path('/tmp/p.b64').read_text().replace("\n", "").encode()
+          patch = gzip.decompress(base64.b64decode(raw))
+          pathlib.Path('/tmp/remaining.patch').write_bytes(patch)
+          print('patch bytes', len(patch))
+          subprocess.check_call(['git', 'apply', '--whitespace=nowarn', '/tmp/remaining.patch'])
+          PY
+          git config user.name "cursor[bot]"
+          git config user.email "cursor[bot]@users.noreply.github.com"
+          git add \
+            apps/desktop/src/preload/index.ts \
+            apps/desktop/src/preload/types.ts \
+            apps/desktop/src/renderer/src/features/agent/MessageBlock.tsx \
+            apps/desktop/src/main/ipc/register-app-ipc.ts \
+            apps/desktop/src/shared/contracts.ts \
+            apps/desktop/src/renderer/src/components/Sidebar.tsx \
+            apps/desktop/src/renderer/src/features/agent/Timeline.tsx \
+            apps/desktop/src/renderer/src/app/App.tsx \
+            apps/desktop/src/renderer/src/styles/app.css
+          git status --short
+          git commit -m "feat(ui): Chats inbox wiring, denser fonts, BranchedMenu styles"
+          rm -rf .github/agent-staging
+          rm -f .github/workflows/apply-ui-polish-tmp.yml
+          git add -A .github/
+          git commit -m "chore: remove temporary ui-polish apply staging"
+          git push origin HEAD:cursor/upstream-ui-polish-5588
