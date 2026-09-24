@@ -224,7 +224,7 @@ export function WorkActivityRow({
           className="text-fg-faint"
           collapsible={false}
           color="var(--color-fg-faint)"
-          fontSize={11}
+          fontSize={10}
           label={preview || "Thinking…"}
           showTimer={false}
           working
@@ -237,7 +237,7 @@ export function WorkActivityRow({
         collapseOnSettle={false}
         color="var(--color-fg-faint)"
         doneLabel="Thought"
-        fontSize={11}
+        fontSize={10}
         showTimer={false}
         {...(preview ? { steps: [preview] } : {})}
         working={false}
@@ -318,7 +318,7 @@ export const WorkFold = memo(function WorkFold({
           color="var(--color-fg-subtle)"
           doneLabel={terminal ?? "Worked for"}
           elapsed={elapsedSeconds}
-          fontSize={13}
+          fontSize={12}
           label="Working…"
           showTimer={!terminal}
           steps={thoughtSteps}

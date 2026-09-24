@@ -1182,7 +1182,7 @@ export function Timeline({
     >
       {/* Same .chat-column token as ChatPane's composer wrapper — one width authority,
           shared by content only. The scroll container above stays full-bleed. */}
-      <div className="chat-column relative">
+      <div className="chat-column conversation-type relative">
         {turns.map((turn) => (
           <section
             className="group/turn timeline-block w-full min-w-0 space-y-6 pb-6"
