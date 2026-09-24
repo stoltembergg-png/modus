@@ -192,8 +192,11 @@ function phaseLabelForItem(item: WorkFoldItem): string | undefined {
       if (item.isComplete === true || item.isError === true) {
         return undefined;
       }
-      const meta = getToolUiMeta(item.name);
-      return meta?.activeVerb ?? meta?.verb ?? "Working";
+      // Active state must read present-tense and short. Builtins supply
+      // `activeVerb`; MCP tools only carry the raw server name as their `verb`
+      // (arbitrary length) and `wait`'s verb is past tense — both fall back to
+      // a neutral label instead of echoing the tool's completed-state verb.
+      return getToolUiMeta(item.name)?.activeVerb ?? "Working";
     }
     case "compaction":
       return item.status === "running" ? "Compacting context" : undefined;
@@ -405,9 +408,7 @@ export const WorkFold = memo(function WorkFold({
           elapsed={elapsedSeconds}
           fontSize={13}
           label="Working…"
-          renderLabel={(text, working) =>
-            working ? <PhaseSwapLabel label={phaseLabel} /> : text
-          }
+          renderLabel={(text, working) => (working ? <PhaseSwapLabel label={phaseLabel} /> : text)}
           showTimer={!terminal}
           steps={thoughtSteps}
           working={active}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { GroupedWorkActivityItem, WorkFoldItem } from "./Timeline";
+import { WAIT_TOOL_NAME } from "../../../../shared/tools";
 import { workFoldPhaseLabel } from "./ActivityGroup";
+import type { GroupedWorkActivityItem, WorkFoldItem } from "./Timeline";
 
 const thought = (id: string, text = "…", streaming = false): WorkFoldItem => ({
   id,
@@ -100,9 +101,26 @@ describe("workFoldPhaseLabel", () => {
   });
 
   it("reads the tail of a work-activity-group", () => {
-    expect(workFoldPhaseLabel([group("g", [tool("r", "read", true), thought("t", "x", true)])])).toBe(
-      "Thinking",
-    );
+    expect(
+      workFoldPhaseLabel([group("g", [tool("r", "read", true), thought("t", "x", true)])]),
+    ).toBe("Thinking");
     expect(workFoldPhaseLabel([group("g", [tool("r", "read", true)])])).toBeUndefined();
+  });
+
+  it("uses a short active fallback when a tool has no present-tense verb", () => {
+    // `wait`'s UI verb is past tense ("Waited"); an MCP tool's verb is the raw
+    // server name (arbitrary length). Neither belongs in the active header.
+    expect(workFoldPhaseLabel([tool("w", WAIT_TOOL_NAME)])).toBe("Working");
+    expect(workFoldPhaseLabel([tool("m", "mcp_a_very_long_server_name_tool")])).toBe("Working");
+  });
+
+  it("never shows a past-tense verb or an MCP server name while a tool is active", () => {
+    const waitLabel = workFoldPhaseLabel([tool("w", WAIT_TOOL_NAME)]);
+    expect(waitLabel).not.toBe("Waited");
+
+    const serverName = "acmelongservername";
+    const mcpLabel = workFoldPhaseLabel([tool("m", `mcp_${serverName}_do_thing`)]) ?? "";
+    expect(mcpLabel).not.toContain(serverName);
+    expect(mcpLabel).toBe("Working");
   });
 });
