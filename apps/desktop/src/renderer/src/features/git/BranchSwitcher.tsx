@@ -1,7 +1,8 @@
 import { Menu } from "@base-ui/react/menu";
-import { IconCheck } from "@tabler/icons-react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { IconCheck, IconGitBranch } from "@tabler/icons-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import type { GitBranchSummary } from "../../../../shared/contracts";
+import { BranchedMenu, type BranchedMenuItem } from "../../components/ui/BranchedMenu";
 import { ShinyText } from "../../components/ui/ShinyText";
 
 type BranchSwitcherProps = {
@@ -24,11 +25,8 @@ type BranchSwitcherProps = {
 
 /**
  * Local-branch viewer + switcher shared by the Changes panel and the workspace
- * top bar. Branches load lazily from the authoritative `git branches` listing on
- * open (never inferred); selecting a non-current branch checks it out. The host
- * owns only presentation (the trigger) and side effects (error / refresh) — the
- * menu, loading, busy state, and checkout call live here so every surface that
- * switches branches stays in lockstep.
+ * top bar. Uses a React Bits BranchedMenu tree so local / remote / worktree
+ * refs read as one animated hierarchy.
  */
 export function BranchSwitcher({
   cwd,
@@ -83,6 +81,7 @@ export function BranchSwitcher({
           return;
         }
         onAfterSwitch?.();
+        setOpen(false);
       } catch (cause) {
         onError?.(cause instanceof Error ? cause.message : String(cause));
       } finally {
@@ -93,6 +92,47 @@ export function BranchSwitcher({
   );
 
   const locals = branches?.local ?? [];
+  const remotes = branches?.remote ?? [];
+  const current = locals.find((branch) => branch.current)?.name ?? branches?.current;
+
+  const menuItems = useMemo((): BranchedMenuItem[] => {
+    const localChildren = locals.map((branch) => {
+      const meta = branch.worktreePath ? "worktree" : branch.current ? "current" : undefined;
+      return {
+        value: `local:${branch.name}`,
+        label: busy === branch.name ? `${branch.name}…` : branch.name,
+        icon: branch.current ? <IconCheck size={13} stroke={2} /> : <IconGitBranch size={13} stroke={1.7} />,
+        ...(meta ? { meta } : {}),
+      };
+    });
+    const remoteChildren = remotes.map((branch) => ({
+      value: `remote:${branch.name}`,
+      label: branch.name,
+      icon: <IconGitBranch size={13} stroke={1.7} />,
+      meta: "remote",
+    }));
+    const items: BranchedMenuItem[] = [
+      {
+        label: "Local",
+        children: localChildren.length > 0 ? localChildren : [{ value: "local:none", label: "No local branches" }],
+      },
+    ];
+    if (remoteChildren.length > 0) {
+      items.push({ label: "Remote", children: remoteChildren });
+    }
+    const worktreeChildren = locals
+      .filter((branch) => Boolean(branch.worktreePath))
+      .map((branch) => ({
+        value: `worktree:${branch.name}`,
+        label: branch.name,
+        icon: <IconGitBranch size={13} stroke={1.7} />,
+        meta: "linked",
+      }));
+    if (worktreeChildren.length > 0) {
+      items.push({ label: "Worktrees", children: worktreeChildren });
+    }
+    return items;
+  }, [locals, remotes, busy]);
 
   return (
     <Menu.Root onOpenChange={setOpen} open={open}>
@@ -101,40 +141,28 @@ export function BranchSwitcher({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align={align} side="bottom" sideOffset={6}>
-          <Menu.Popup className="scroll-thin origin-(--transform-origin) max-h-[320px] min-w-[240px] overflow-y-auto popup-chrome p-1">
-            {locals.length === 0 ? (
+          <Menu.Popup className="origin-(--transform-origin) min-w-[260px] popup-chrome p-2">
+            {!branches ? (
               <div className="px-2.5 py-3 text-center text-2xs text-fg-faint">
-                {branches ? "No branches" : "Loading…"}
+                <ShinyText>Loading…</ShinyText>
               </div>
+            ) : locals.length === 0 && remotes.length === 0 ? (
+              <div className="px-2.5 py-3 text-center text-2xs text-fg-faint">No branches</div>
             ) : (
-              locals.map((branch) => (
-                <Menu.Item
-                  className="flex cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-fg text-sm outline-none transition-colors select-none data-highlighted:bg-hover"
-                  closeOnClick={!branch.current}
-                  key={branch.name}
-                  onClick={() => {
-                    if (branch.current) {
-                      return;
-                    }
-                    void switchTo(branch.name);
-                  }}
-                  title={branch.worktreePath}
-                >
-                  <span className="flex size-4 shrink-0 items-center justify-center text-accent">
-                    {branch.current ? <IconCheck size={14} stroke={2} /> : null}
-                  </span>
-                  {busy === branch.name ? (
-                    <ShinyText className="min-w-0 flex-1 truncate">{branch.name}</ShinyText>
-                  ) : (
-                    <span className="min-w-0 flex-1 truncate">{branch.name}</span>
-                  )}
-                  {branch.current ? (
-                    <span className="shrink-0 text-2xs text-fg-faint">current</span>
-                  ) : branch.worktreePath ? (
-                    <span className="shrink-0 text-2xs text-fg-faint">worktree</span>
-                  ) : null}
-                </Menu.Item>
-              ))
+              <BranchedMenu
+                defaultActive={current ? `local:${current}` : ""}
+                defaultOpen={[0]}
+                fontSize={12}
+                items={menuItems}
+                onSelect={(value) => {
+                  if (value.endsWith(":none")) return;
+                  const name = value.replace(/^(local|remote|worktree):/, "");
+                  if (!name || name === current) return;
+                  void switchTo(name);
+                }}
+                rowHeight={28}
+                width={248}
+              />
             )}
           </Menu.Popup>
         </Menu.Positioner>

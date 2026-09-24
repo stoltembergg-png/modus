@@ -8,10 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { TextType } from "../../components/ui/TextType";
 import { MarkdownFileNavContext } from "./markdownFileNav";
 
 const MarkdownMessageRenderer = lazy(() => import("./MarkdownMessageRenderer"));
-const REVEAL_WINDOW_MS = 120;
+const REVEAL_WINDOW_MS = 280;
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 export function nextStreamingIndex(text: string, index: number, elapsed: number): number {
@@ -44,7 +45,11 @@ export function MarkdownMessage({
     <MarkdownFileNavContext.Provider value={{ cwd, onOpenFile }}>
       <MarkdownMessageErrorBoundary content={shown}>
         <Suspense fallback={<PlainTextFallback content={shown} />}>
-          <MarkdownMessageRenderer className={className} content={shown} streaming={animating} />
+          <span className="relative inline-block max-w-full min-w-0">
+            <MarkdownMessageRenderer className={className} content={shown} streaming={animating} />
+            {/* React Bits TextType caret — types along as tokens catch up. */}
+            <TextType active={animating} className="align-baseline text-fg-muted" mode="caret" />
+          </span>
         </Suspense>
       </MarkdownMessageErrorBoundary>
     </MarkdownFileNavContext.Provider>
