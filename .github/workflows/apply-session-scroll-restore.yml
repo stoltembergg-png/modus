@@ -16,7 +16,7 @@ jobs:
       - name: Assemble extract commit push
         run: |
           set -euo pipefail
-          cat .github/tmp/scroll-hex-* > /tmp/payload.hex
+          cat .github/tmp/scroll-hex-c[0-9][0-9] > /tmp/payload.hex
           xxd -r -p /tmp/payload.hex > /tmp/files.tar.gz
           tar -xzf /tmp/files.tar.gz -C .
           git config user.name "github-actions[bot]"
