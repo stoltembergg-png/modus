@@ -29,29 +29,29 @@ export function CollapsibleMotion({
   const duration = reduceMotion ? 0 : COLLAPSIBLE_MOTION[preset];
 
   return (
-    <m.div
-      className={cn("relative overflow-hidden", className)}
-      data-collapsible-motion
-      id={id}
-      layout={reduceMotion ? false : "size"}
-      layoutDependency={open}
-      style={{ transformOrigin: "top" }}
-      transition={{ layout: { duration, ease: COLLAPSIBLE_EASE } }}
-    >
-      <AnimatePresence initial={false} mode="popLayout">
-        {open ? (
+    <AnimatePresence initial={false}>
+      {open ? (
+        <m.div
+          animate={{ height: "auto", opacity: 1 }}
+          className={cn("relative overflow-hidden", className)}
+          data-collapsible-motion
+          exit={{ height: 0, opacity: 0 }}
+          id={id}
+          initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+          key="open"
+          style={{ transformOrigin: "top" }}
+          transition={{ duration, ease: COLLAPSIBLE_EASE }}
+        >
           <m.div
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            initial={{ opacity: 0, y: -4 }}
-            layout={reduceMotion ? false : "position"}
-            layoutDependency={open}
-            transition={{ duration, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -6 }}
+            initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+            transition={{ duration: duration * 0.9, ease: "easeOut" }}
           >
             {children}
           </m.div>
-        ) : null}
-      </AnimatePresence>
-    </m.div>
+        </m.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

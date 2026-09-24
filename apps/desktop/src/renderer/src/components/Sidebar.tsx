@@ -8,7 +8,6 @@ import {
   IconFolder,
   IconFolderOpen,
   IconFolderPlus,
-  IconLayoutSidebar,
   IconPencil,
   IconPin,
   IconPinnedOff,
@@ -21,6 +20,7 @@ import {
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
+  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -31,7 +31,7 @@ import { SessionStatusDot } from "../features/agent/SessionStatusDot";
 import { cn } from "../lib/cn";
 import { useScrollFade } from "../lib/useScrollFade";
 import { CollapsibleMotion } from "./ui/CollapsibleMotion";
-import { TOOLBAR_ICON, ToolbarButton } from "./ui/ToolbarButton";
+import { ScrollReveal } from "./ui/ScrollReveal";
 
 export const SIDEBAR_MIN_WIDTH = 240;
 const SIDEBAR_MAX_WIDTH = 480;
@@ -77,7 +77,6 @@ type SidebarProps = {
   onRemoveProject(id: string): void;
   onRevealProject(id: string): void;
   onOpenSettings(): void;
-  onOpenChange(open: boolean): void;
   onWidthChange(width: number): void;
   canCreateSession: boolean;
 };
@@ -106,7 +105,6 @@ export function Sidebar({
   onRemoveProject,
   onRevealProject,
   onOpenSettings,
-  onOpenChange,
   onWidthChange,
   canCreateSession,
 }: SidebarProps) {
@@ -114,6 +112,7 @@ export function Sidebar({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const sessionsByWorkspace = groupSessionsByWorkspace(agentSessions);
   const { ref: scrollFadeRef, fadeTop, fadeBottom } = useScrollFade();
+  const scrollContainerRef = scrollFadeRef as RefObject<HTMLElement | null>;
 
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
   const latestWidthRef = useRef(width);
@@ -240,6 +239,7 @@ export function Sidebar({
                   onArchiveChats={() => onArchiveProjectChats(workspace.id)}
                   onDeleteChats={() => onDeleteProjectChats(workspace.id)}
                   onRemove={() => onRemoveProject(workspace.id)}
+                  scrollContainerRef={scrollContainerRef}
                 />
               ))
             )}
@@ -258,18 +258,13 @@ export function Sidebar({
           <SectionLabel>Chats</SectionLabel>
         </div>
 
-        <div className="app-no-drag flex items-center gap-1 px-2 pt-1 pb-2">
-          <div className="min-w-0 flex-1">
-            <NavRow
-              icon={<IconSettings size={SB_ICON} stroke={SB_STROKE} />}
-              onClick={onOpenSettings}
-            >
-              Settings
-            </NavRow>
-          </div>
-          <ToolbarButton label="Collapse sidebar" onClick={() => onOpenChange(false)}>
-            <IconLayoutSidebar size={TOOLBAR_ICON.size} stroke={TOOLBAR_ICON.stroke} />
-          </ToolbarButton>
+        <div className="app-no-drag px-2 pt-1 pb-2">
+          <NavRow
+            icon={<IconSettings size={SB_ICON} stroke={SB_STROKE} />}
+            onClick={onOpenSettings}
+          >
+            Settings
+          </NavRow>
         </div>
       </m.div>
       {open ? (
@@ -308,6 +303,7 @@ function WorkspaceItem({
   onArchiveChats,
   onDeleteChats,
   onRemove,
+  scrollContainerRef,
 }: {
   workspace: WorkspaceInfo;
   activeSessionId?: string | undefined;
@@ -329,6 +325,7 @@ function WorkspaceItem({
   onArchiveChats(): void;
   onDeleteChats(): void;
   onRemove(): void;
+  scrollContainerRef: RefObject<HTMLElement | null>;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -386,27 +383,33 @@ function WorkspaceItem({
       </ProjectRow>
       <CollapsibleMotion open={expanded} preset="default">
         {visibleSessions.map((session) => (
-          <SessionRow
-            activity={activityBySession[session.id]}
-            isActive={activeSessionId === session.id}
+          <ScrollReveal
             key={session.id}
-            onArchive={(event) => {
-              event.stopPropagation();
-              onArchiveSession(session);
-            }}
-            onDelete={(event) => {
-              event.stopPropagation();
-              onDeleteSession(session);
-            }}
-            onPin={(event) => {
-              event.stopPropagation();
-              onPinSession(session, !session.pinnedAt);
-            }}
-            onSelect={() => onSelectSession(session)}
-            pinned={Boolean(session.pinnedAt)}
-            title={session.title}
-            updatedAt={session.updatedAt}
-          />
+            offsetY={8}
+            scrollContainerRef={scrollContainerRef}
+            blurStrength={3}
+          >
+            <SessionRow
+              activity={activityBySession[session.id]}
+              isActive={activeSessionId === session.id}
+              onArchive={(event) => {
+                event.stopPropagation();
+                onArchiveSession(session);
+              }}
+              onDelete={(event) => {
+                event.stopPropagation();
+                onDeleteSession(session);
+              }}
+              onPin={(event) => {
+                event.stopPropagation();
+                onPinSession(session, !session.pinnedAt);
+              }}
+              onSelect={() => onSelectSession(session)}
+              pinned={Boolean(session.pinnedAt)}
+              title={session.title}
+              updatedAt={session.updatedAt}
+            />
+          </ScrollReveal>
         ))}
         {canToggleSessions ? (
           <button
