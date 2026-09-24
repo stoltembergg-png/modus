@@ -3,8 +3,9 @@ import type { WorkspaceInfo } from "../../shared/contracts";
 import { archiveWorkspaceSessions, deleteWorkspaceSessions } from "../agent/session-lifecycle";
 import { isGitRepository } from "../git/git-service";
 import {
+  ensureChatsWorkspace,
   getWorkspace,
-  listWorkspaces,
+  listProjectWorkspaces,
   removeWorkspace,
   renameWorkspace,
   setWorkspacePinned,
@@ -24,19 +25,21 @@ export async function openWorkspace(): Promise<WorkspaceInfo | undefined> {
 }
 
 export function getRecentWorkspaces(): WorkspaceInfo[] {
-  return listWorkspaces();
+  return listProjectWorkspaces();
 }
+
+export { ensureChatsWorkspace };
 
 /** Pin / unpin a project; returns the re-sorted recents. */
 export function setProjectPinned(id: string, pinned: boolean): WorkspaceInfo[] {
   setWorkspacePinned(id, pinned);
-  return listWorkspaces();
+  return listProjectWorkspaces();
 }
 
 /** Rename a project's sidebar label; returns the updated recents. */
 export function renameProject(id: string, displayName: string): WorkspaceInfo[] {
   renameWorkspace(id, displayName);
-  return listWorkspaces();
+  return listProjectWorkspaces();
 }
 
 /** Soft-archive all of a project's visible chats. Returns count archived. */
@@ -56,7 +59,7 @@ export async function deleteProjectChats(id: string): Promise<number> {
 export async function removeProject(id: string): Promise<WorkspaceInfo[]> {
   await deleteWorkspaceSessions(id);
   removeWorkspace(id);
-  return listWorkspaces();
+  return listProjectWorkspaces();
 }
 
 /** Reveal a project's root folder in the OS file manager. */

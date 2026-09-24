@@ -204,7 +204,7 @@ export const MessageBlock = memo(function MessageBlock({
   }
 
   return (
-    <div className="min-w-0 max-w-full text-sm leading-relaxed">
+    <div className="min-w-0 max-w-full text-xs leading-relaxed">
       {content ? (
         <MarkdownMessage
           content={content}

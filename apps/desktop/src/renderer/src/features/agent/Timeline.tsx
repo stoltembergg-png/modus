@@ -1306,7 +1306,13 @@ function TimelineReveal({
     return children;
   }
   return (
-    <ScrollReveal blurStrength={3} offsetY={14} once scrollContainerRef={scrollContainerRef}>
+    <ScrollReveal
+      blurStrength={5}
+      offsetY={16}
+      once
+      scrollContainerRef={scrollContainerRef}
+      topEdgeBlur={3}
+    >
       {children}
     </ScrollReveal>
   );

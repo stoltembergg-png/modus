@@ -104,6 +104,8 @@ export type ModusApi = {
   workspace: {
     open(): Promise<WorkspaceInfo | undefined>;
     list(): Promise<WorkspaceInfo[]>;
+    /** Inbox workspace for chats started without a project folder. */
+    ensureChats(): Promise<WorkspaceInfo>;
     /** Pin / unpin a project; returns the re-sorted recents. */
     pin(input: { id: string; pinned: boolean }): Promise<WorkspaceInfo[]>;
     /** Rename a project's sidebar label; returns the updated recents. */

@@ -151,6 +151,7 @@ import {
 import {
   archiveProjectChats,
   deleteProjectChats,
+  ensureChatsWorkspace,
   getRecentWorkspaces,
   openWorkspace,
   removeProject,
@@ -347,6 +348,11 @@ export function registerAppIpc({
   ipcMain.handle(IPC_CHANNELS.workspaceList, (event) => {
     assertTrustedSender(event);
     return getRecentWorkspaces();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.workspaceEnsureChats, (event) => {
+    assertTrustedSender(event);
+    return ensureChatsWorkspace();
   });
 
   ipcMain.handle(IPC_CHANNELS.workspacePin, (event, input) => {

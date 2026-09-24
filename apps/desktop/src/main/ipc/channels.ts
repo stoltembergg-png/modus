@@ -4,6 +4,7 @@ export const IPC_CHANNELS = {
   appStartupMetric: "app:startup-metric",
   workspaceOpen: "workspace:open",
   workspaceList: "workspace:list",
+  workspaceEnsureChats: "workspace:ensure-chats",
   workspacePin: "workspace:pin",
   workspaceRename: "workspace:rename",
   workspaceArchiveChats: "workspace:archive-chats",

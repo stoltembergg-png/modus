@@ -22,10 +22,12 @@ import {
   type ReactNode,
   type RefObject,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import type { AgentSessionInfo, WorkspaceInfo } from "../../../shared/contracts";
+import { CHATS_WORKSPACE_ID } from "../../../shared/contracts";
 import type { SessionActivity } from "../features/agent/agentEventHub";
 import { SessionStatusDot } from "../features/agent/SessionStatusDot";
 import { cn } from "../lib/cn";
@@ -116,7 +118,20 @@ export function Sidebar({
 }: SidebarProps) {
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const projectIds = useMemo(
+    () => new Set(workspaces.map((workspace) => workspace.id)),
+    [workspaces],
+  );
   const sessionsByWorkspace = groupSessionsByWorkspace(agentSessions);
+  const inboxSessions = useMemo(
+    () =>
+      agentSessions.filter(
+        (session) =>
+          !session.parentSessionId &&
+          (session.workspaceId === CHATS_WORKSPACE_ID || !projectIds.has(session.workspaceId)),
+      ),
+    [agentSessions, projectIds],
+  );
   const { ref: scrollFadeRef, fadeTop, fadeBottom } = useScrollFade();
   const scrollContainerRef = scrollFadeRef as RefObject<HTMLElement | null>;
 
@@ -278,6 +293,43 @@ export function Sidebar({
           </CollapsibleMotion>
 
           <SectionLabel>Chats</SectionLabel>
+          <AnimatePresence initial={false}>
+            {inboxSessions.length === 0 ? (
+              <p className="px-2 py-1 text-2xs text-fg-faint">
+                Chats without a folder appear here.
+              </p>
+            ) : (
+              inboxSessions.map((session) => (
+                <ScrollReveal
+                  key={session.id}
+                  offsetY={8}
+                  scrollContainerRef={scrollContainerRef}
+                  blurStrength={3}
+                >
+                  <SessionRow
+                    activity={activityBySession[session.id]}
+                    isActive={activeSessionId === session.id}
+                    onArchive={(event) => {
+                      event.stopPropagation();
+                      onArchiveSession(session);
+                    }}
+                    onDelete={(event) => {
+                      event.stopPropagation();
+                      onDeleteSession(session);
+                    }}
+                    onPin={(event) => {
+                      event.stopPropagation();
+                      onPinSession(session, !session.pinnedAt);
+                    }}
+                    onSelect={() => onSelectSession(session)}
+                    pinned={Boolean(session.pinnedAt)}
+                    title={session.title}
+                    updatedAt={session.updatedAt}
+                  />
+                </ScrollReveal>
+              ))
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="app-no-drag px-2 pt-1 pb-2">
