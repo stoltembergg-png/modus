@@ -1,5 +1,5 @@
 import { IconChevronRight } from "@tabler/icons-react";
-import { m } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { memo, type ReactNode, useEffect, useId, useState } from "react";
 import type { ModelInfo, PlanRef } from "../../../../shared/contracts";
 import { getToolUiMeta, type ToolSummaryMeta } from "../../../../shared/tools";
@@ -176,6 +176,89 @@ export function workActivityPresentation(items: GroupedWorkActivityItem[]) {
   };
 }
 
+/**
+ * Short, verb-only phase label for the fold header while the turn runs.
+ *
+ * Derived purely from real activity events (no timer, no fabricated phases):
+ * only the *running* item yields a label, so settled work never leaves a stale
+ * phase on screen. Detail (tool targets, thought text) stays in the expandable
+ * trace, so the header never echoes the trace.
+ */
+function phaseLabelForItem(item: WorkFoldItem): string | undefined {
+  switch (item.type) {
+    case "thought":
+      return item.streaming ? "Thinking" : undefined;
+    case "tool": {
+      if (item.isComplete === true || item.isError === true) {
+        return undefined;
+      }
+      const meta = getToolUiMeta(item.name);
+      return meta?.activeVerb ?? meta?.verb ?? "Working";
+    }
+    case "compaction":
+      return item.status === "running" ? "Compacting context" : undefined;
+    case "todos":
+      return item.updating ? "Updating to-dos" : undefined;
+    case "subagent":
+      return item.status === "running" || item.status === "blocked"
+        ? "Waiting on subagent"
+        : undefined;
+    case "message":
+      return item.role === "assistant" && item.streaming ? "Writing" : undefined;
+    case "work-activity-group":
+      for (let i = item.items.length - 1; i >= 0; i -= 1) {
+        const activity = item.items[i];
+        if (!activity) continue;
+        const label = phaseLabelForItem(activity);
+        if (label) return label;
+      }
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** Current real phase for a turn's fold, or undefined when nothing is running. */
+export function workFoldPhaseLabel(items: WorkFoldItem[]): string | undefined {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    if (!item) continue;
+    const label = phaseLabelForItem(item);
+    if (label) return label;
+  }
+  return undefined;
+}
+
+/** Swap timing mirrors the app's ease-out-quint token (see app.css). */
+const PHASE_SWAP = { duration: 0.16, ease: [0.22, 1, 0.36, 1] as const };
+
+/**
+ * Visual-only phase swap for the fold header. The accessible label is owned by
+ * ThoughtLine's `role="status"`, which stays on a stable "Working…", so this
+ * changing text is aria-hidden to keep assistive tech from chattering. Both the
+ * outgoing and incoming labels share one grid cell, so the box is only ever as
+ * wide as the wider of the two — no separate sizer, no horizontal overflow.
+ */
+function PhaseSwapLabel({ label }: { label: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <span aria-hidden="true" className="relative inline-grid overflow-hidden">
+      <AnimatePresence initial={false}>
+        <m.span
+          animate={{ opacity: 1, y: 0 }}
+          className="col-start-1 row-start-1 whitespace-nowrap"
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -5 }}
+          initial={reduce ? false : { opacity: 0, y: 5 }}
+          key={label}
+          transition={reduce ? { duration: 0 } : PHASE_SWAP}
+        >
+          {label}
+        </m.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 function WorkActivityGroup({
   group,
   children,
@@ -308,6 +391,8 @@ export const WorkFold = memo(function WorkFold({
         ? "Stopped by you"
         : null;
   const thoughtSteps = collectThoughtSteps(items);
+  // Real phase labels that swap in the header as events arrive (never a timer).
+  const phaseLabel = workFoldPhaseLabel(items) ?? "Working…";
 
   return (
     <div className="min-w-0 text-sm">
@@ -320,6 +405,9 @@ export const WorkFold = memo(function WorkFold({
           elapsed={elapsedSeconds}
           fontSize={13}
           label="Working…"
+          renderLabel={(text, working) =>
+            working ? <PhaseSwapLabel label={phaseLabel} /> : text
+          }
           showTimer={!terminal}
           steps={thoughtSteps}
           working={active}
