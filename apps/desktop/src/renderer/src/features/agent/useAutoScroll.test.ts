@@ -14,6 +14,7 @@ describe("shouldShowScrollToLatest", () => {
     expect(shouldPinOnEnd(true, true, false)).toBe(false);
     expect(shouldPinOnEnd(true, false, true)).toBe(false);
   });
+
   it("shows only after the user is more than one viewport away from latest content", () => {
     expect(shouldShowScrollToLatest(799, 800)).toBe(false);
     expect(shouldShowScrollToLatest(800, 800)).toBe(false);
