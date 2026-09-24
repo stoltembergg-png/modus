@@ -141,7 +141,10 @@ export function useAutoScroll(working: boolean): AutoScroll {
         return;
       }
       markAuto(el, behavior === "smooth");
-      if (distanceFromBottom(el) >= 2) {
+      // Force always applies — even when distance is already < 2. On session
+      // remount the container is empty for a frame (distance ≈ 0); skipping
+      // here left idle chats stuck at scrollTop 0 after content painted.
+      if (force || distanceFromBottom(el) >= 2) {
         if (behavior === "smooth") {
           el.scrollTo({ top: el.scrollHeight, behavior });
         } else {
