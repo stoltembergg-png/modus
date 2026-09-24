@@ -29,6 +29,7 @@ import type { AgentSessionInfo, WorkspaceInfo } from "../../../shared/contracts"
 import type { SessionActivity } from "../features/agent/agentEventHub";
 import { SessionStatusDot } from "../features/agent/SessionStatusDot";
 import { cn } from "../lib/cn";
+import { ICON, ICON_STROKE } from "../lib/uiDensity";
 import { useScrollFade } from "../lib/useScrollFade";
 import { CollapsibleMotion } from "./ui/CollapsibleMotion";
 import { ScrollReveal } from "./ui/ScrollReveal";
@@ -44,15 +45,16 @@ export const SIDEBAR_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] } a
 const SB_RAIL = "pointer-events-none flex w-5 shrink-0 items-center justify-center";
 const SB_ROW =
   "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-sm font-normal transition-colors";
-/** Session titles — one step quieter/smaller than nav & project rows (Cursor density). */
+/** Session titles — one step quieter than nav (`text-sm`) via the shared ramp. */
 const SB_SESSION =
-  "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-[length:calc(var(--text-xs)*0.95)] font-normal transition-colors";
-/** Relative timestamps / meta on session rows — 5% under text-2xs to match titles. */
-const SB_SESSION_META =
-  "px-1 text-[length:calc(var(--text-2xs)*0.95)] font-normal text-fg-faint tabular-nums";
+  "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-xs font-normal transition-colors";
+/** Relative timestamps / meta on session rows. */
+const SB_SESSION_META = "px-1 text-2xs font-normal text-fg-faint tabular-nums";
 const SB_NEST = "pl-5"; // 20px = one rail
-const SB_ICON = 18;
-const SB_STROKE = 1.5;
+const SB_ICON = ICON.lg;
+const SB_STROKE = ICON_STROKE.lg;
+const SB_ACTION = ICON.sm;
+const SB_ACTION_STROKE = ICON_STROKE.sm;
 const LIST_MOTION = { duration: 0.14, ease: "easeOut" } as const;
 
 type SidebarProps = {
@@ -531,13 +533,13 @@ function SessionRow({
         <span className={SB_SESSION_META}>{formatRelativeTime(updatedAt)}</span>
         <IconButton label={pinned ? "Unpin chat" : "Pin chat"} onClick={onPin}>
           {pinned ? (
-            <IconPinnedOff size={14} stroke={SB_STROKE} />
+            <IconPinnedOff size={SB_ACTION} stroke={SB_ACTION_STROKE} />
           ) : (
-            <IconPin size={14} stroke={SB_STROKE} />
+            <IconPin size={SB_ACTION} stroke={SB_ACTION_STROKE} />
           )}
         </IconButton>
         <IconButton label="Archive" onClick={onArchive}>
-          <IconArchive size={14} stroke={SB_STROKE} />
+          <IconArchive size={SB_ACTION} stroke={SB_ACTION_STROKE} />
         </IconButton>
         {confirmDelete ? (
           <button
@@ -555,7 +557,7 @@ function SessionRow({
               setConfirmDelete(true);
             }}
           >
-            <IconTrash size={14} stroke={SB_STROKE} />
+            <IconTrash size={SB_ACTION} stroke={SB_ACTION_STROKE} />
           </IconButton>
         )}
       </span>
@@ -595,7 +597,7 @@ function ArchivedSessionRow({
           {formatRelativeTime(session.archivedAt ?? session.updatedAt)}
         </span>
         <IconButton label="Restore" onClick={onRestore}>
-          <IconArchiveOff size={14} stroke={SB_STROKE} />
+          <IconArchiveOff size={SB_ACTION} stroke={SB_ACTION_STROKE} />
         </IconButton>
       </span>
     </m.div>
@@ -688,7 +690,7 @@ function ProjectRow({
               className="flex size-3 shrink-0 items-center justify-center text-fg-faint opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
-              <IconChevronRight size={12} stroke={SB_STROKE} />
+              <IconChevronRight size={ICON.xs} stroke={ICON_STROKE.xs} />
             </m.span>
           </button>
           <span
@@ -699,7 +701,7 @@ function ProjectRow({
           >
             {trigger}
             <IconButton label="New session" onClick={onCreate}>
-              <IconEdit size={14} stroke={SB_STROKE} />
+              <IconEdit size={SB_ACTION} stroke={SB_ACTION_STROKE} />
             </IconButton>
           </span>
         </m.div>
@@ -852,7 +854,7 @@ function ProjectActions({
       className="flex size-6 items-center justify-center rounded-md text-fg-faint outline-none transition-colors hover:bg-active hover:text-fg-muted data-popup-open:bg-active data-popup-open:text-fg-muted"
       onClick={(event) => event.stopPropagation()}
     >
-      <IconDots size={14} stroke={1.8} />
+      <IconDots size={SB_ACTION} stroke={SB_ACTION_STROKE} />
     </Menu.Trigger>
   );
   return (
@@ -872,34 +874,43 @@ function ProjectActions({
             <ProjectMenuItem
               icon={
                 pinned ? (
-                  <IconPinnedOff size={15} stroke={1.7} />
+                  <IconPinnedOff size={SB_ACTION} stroke={SB_ACTION_STROKE} />
                 ) : (
-                  <IconPin size={15} stroke={1.7} />
+                  <IconPin size={SB_ACTION} stroke={SB_ACTION_STROKE} />
                 )
               }
               onClick={onPin}
             >
               {pinned ? "Unpin project" : "Pin project"}
             </ProjectMenuItem>
-            <ProjectMenuItem icon={<IconFolderOpen size={15} stroke={1.7} />} onClick={onReveal}>
+            <ProjectMenuItem
+              icon={<IconFolderOpen size={SB_ACTION} stroke={SB_ACTION_STROKE} />}
+              onClick={onReveal}
+            >
               Open in Explorer
             </ProjectMenuItem>
-            <ProjectMenuItem icon={<IconPencil size={15} stroke={1.7} />} onClick={onRename}>
+            <ProjectMenuItem
+              icon={<IconPencil size={SB_ACTION} stroke={SB_ACTION_STROKE} />}
+              onClick={onRename}
+            >
               Rename project
             </ProjectMenuItem>
             <ProjectMenuItem
-              icon={<IconArchiveOff size={15} stroke={1.7} />}
+              icon={<IconArchiveOff size={SB_ACTION} stroke={SB_ACTION_STROKE} />}
               onClick={onShowArchived}
             >
               Archived chats
             </ProjectMenuItem>
-            <ProjectMenuItem icon={<IconArchive size={15} stroke={1.7} />} onClick={onArchiveChats}>
+            <ProjectMenuItem
+              icon={<IconArchive size={SB_ACTION} stroke={SB_ACTION_STROKE} />}
+              onClick={onArchiveChats}
+            >
               Archive chats
             </ProjectMenuItem>
             <div className="my-1 h-px bg-hairline" />
             <ProjectMenuItem
               danger
-              icon={<IconTrash size={15} stroke={1.7} />}
+              icon={<IconTrash size={SB_ACTION} stroke={SB_ACTION_STROKE} />}
               onClick={() => {
                 if (!confirmDeleteChats) {
                   setConfirmDeleteChats(true);
@@ -911,7 +922,11 @@ function ProjectActions({
             >
               {confirmDeleteChats ? "Confirm delete chats" : "Delete chats"}
             </ProjectMenuItem>
-            <ProjectMenuItem danger icon={<IconX size={15} stroke={1.7} />} onClick={onRemove}>
+            <ProjectMenuItem
+              danger
+              icon={<IconX size={SB_ACTION} stroke={SB_ACTION_STROKE} />}
+              onClick={onRemove}
+            >
               Remove
             </ProjectMenuItem>
           </Menu.Popup>
@@ -991,7 +1006,7 @@ function SectionHeader({
           className="flex size-3 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
           transition={{ duration: 0.16, ease: "easeOut" }}
         >
-          <IconChevronRight size={11} stroke={SB_STROKE} />
+          <IconChevronRight size={ICON.xs} stroke={ICON_STROKE.xs} />
         </m.span>
       </button>
     </div>

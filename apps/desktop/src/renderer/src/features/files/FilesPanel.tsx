@@ -736,7 +736,7 @@ function FileRow({
     <button
       className={cn(
         // Cursor-like density: airy row (36px) + 12px muted label so text floats with breathing room.
-        "flex h-9 w-full min-w-0 items-center gap-1.5 rounded-sm pr-2 text-left text-[11px] font-normal leading-none transition-colors",
+        "flex h-9 w-full min-w-0 items-center gap-1.5 rounded-sm pr-2 text-left text-2xs font-normal leading-none transition-colors",
         selected ? "bg-active text-fg" : "text-fg hover:bg-hover",
       )}
       onClick={onActivate}

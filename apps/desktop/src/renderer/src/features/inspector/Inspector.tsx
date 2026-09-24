@@ -438,9 +438,9 @@ function SecurityPanel({ securityState }: { securityState: SecurityState | null 
                 )}
               >
                 {value ? (
-                  <IconShieldCheck size={15} stroke={1.6} />
+                  <IconShieldCheck size={14} stroke={1.6} />
                 ) : (
-                  <IconShieldX size={15} stroke={1.6} />
+                  <IconShieldX size={14} stroke={1.6} />
                 )}
                 {value ? "enforced" : "off"}
               </span>

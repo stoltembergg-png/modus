@@ -42,6 +42,7 @@ import {
   selectedThinkingLabel,
   selectedThinkingOption,
 } from "../../lib/modelThinking";
+import { ICON, ICON_STROKE } from "../../lib/uiDensity";
 import { ProviderLogo } from "../settings/ProviderLogo";
 import { ContextMentionMenu } from "./ContextMentionMenu";
 import { contextItemKey } from "./composerTokens";
@@ -656,7 +657,7 @@ export function Composer({
                     onClick={() => removeImage(image.id)}
                     type="button"
                   >
-                    <IconX size={11} stroke={2.2} />
+                    <IconX size={ICON.xs} stroke={ICON_STROKE.xs} />
                   </button>
                 </m.div>
               ))}
@@ -674,7 +675,7 @@ export function Composer({
             title="Attach files"
             type="button"
           >
-            <IconPlus size={16} stroke={2} />
+            <IconPlus size={ICON.md} stroke={ICON_STROKE.md} />
           </button>
           <input
             accept="image/*"
@@ -729,7 +730,7 @@ export function Composer({
               onClick={onCancel}
               type="button"
             >
-              <IconX size={16} stroke={1.8} />
+              <IconX size={ICON.md} stroke={ICON_STROKE.md} />
             </button>
           ) : null}
 
@@ -765,15 +766,15 @@ function PlanModePill({ onExit }: { onExit: () => void }) {
       className="app-no-drag inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 pr-1 pl-1.5 text-accent"
       title="Plan Mode — research read-only and draft a plan (Shift+Tab to toggle)"
     >
-      <IconListCheck size={14} stroke={1.9} />
-      <span className="font-medium text-[12px]">Plan</span>
+      <IconListCheck size={ICON.sm} stroke={ICON_STROKE.sm} />
+      <span className="font-medium text-xs">Plan</span>
       <button
         aria-label="Exit Plan Mode"
         className="flex size-4 items-center justify-center rounded-sm text-accent/70 transition-colors hover:bg-accent/15 hover:text-accent"
         onClick={onExit}
         type="button"
       >
-        <IconX size={12} stroke={2} />
+        <IconX size={ICON.xs} stroke={ICON_STROKE.xs} />
       </button>
     </span>
   );
@@ -848,7 +849,7 @@ function ModelSelect({
   );
 
   const chipClass =
-    "app-no-drag inline-flex h-7 min-w-0 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-fg-muted outline-none transition-colors select-none hover:bg-hover hover:text-fg data-popup-open:bg-hover data-popup-open:text-fg data-disabled:pointer-events-none data-disabled:opacity-45";
+    "app-no-drag inline-flex h-7 min-w-0 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg px-2 text-xs font-medium text-fg-muted outline-none transition-colors select-none hover:bg-hover hover:text-fg data-popup-open:bg-hover data-popup-open:text-fg data-disabled:pointer-events-none data-disabled:opacity-45";
   // Prompt Bar: both model + effort chips turn spark purple at max effort.
   const chipMaxClass =
     "text-[color:var(--color-focus-ring-soft)] hover:text-[color:var(--color-focus-ring-soft)]";
@@ -881,7 +882,7 @@ function ModelSelect({
             size="sm"
           />
           <span className="min-w-0 truncate">{current.name}</span>
-          <IconChevronDown className="shrink-0 opacity-70" size={12} stroke={2.4} />
+          <IconChevronDown className="shrink-0 opacity-70" size={ICON.xs} stroke={ICON_STROKE.xs} />
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner align="start" side="top" sideOffset={8}>
@@ -891,7 +892,7 @@ function ModelSelect({
             >
               {providerGroups.map((group) => (
                 <div key={group.provider}>
-                  <div className="flex items-center gap-1.5 px-2 pt-2 pb-1 text-[11px] text-fg-faint uppercase tracking-wide">
+                  <div className="flex items-center gap-1.5 px-2 pt-2 pb-1 text-2xs text-fg-faint uppercase tracking-wide">
                     <ProviderLogo
                       framed={false}
                       name={group.name}
@@ -910,13 +911,13 @@ function ModelSelect({
                         {item.name}
                       </span>
                       {!item.available ? (
-                        <span className="shrink-0 text-[11px] text-fg-faint">off</span>
+                        <span className="shrink-0 text-2xs text-fg-faint">off</span>
                       ) : null}
                       <span
                         className="inline-flex w-4 shrink-0 justify-center text-fg-muted opacity-0 data-[on]:opacity-100"
                         data-on={item.id === current.id ? "" : undefined}
                       >
-                        <IconCheck size={13} stroke={2.5} />
+                        <IconCheck size={ICON.sm} stroke={ICON_STROKE.sm} />
                       </span>
                     </Menu.Item>
                   ))}
@@ -933,20 +934,20 @@ function ModelSelect({
           className={cn(chipClass, effortMaxed && chipMaxClass)}
           disabled={!effortAvailable || !onModelConfigChange}
         >
-          <IconSparkles className="shrink-0" size={13} stroke={2} />
+          <IconSparkles className="shrink-0" size={ICON.sm} stroke={ICON_STROKE.sm} />
           <span className="max-w-[7rem] truncate @md:max-w-none">{effortLabel}</span>
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner align="start" side="top" sideOffset={8}>
             <Menu.Popup className="origin-(--transform-origin) w-[248px] max-w-[calc(100vw-24px)] popup-chrome px-3.5 pt-3 pb-3.5">
-              <div className="flex items-center gap-2 text-[13px] leading-[18px]">
+              <div className="flex items-center gap-2 text-sm leading-[18px]">
                 <span className="text-fg-faint">Effort</span>
                 <span className="font-medium text-fg">{effortLabel}</span>
                 <span
                   className="ml-auto inline-flex text-fg-faint"
                   title="Higher effort thinks longer before answering"
                 >
-                  <IconHelpCircle size={14} stroke={1.8} />
+                  <IconHelpCircle size={ICON.sm} stroke={ICON_STROKE.sm} />
                 </span>
               </div>
 
@@ -958,7 +959,7 @@ function ModelSelect({
                   >
                     <span>Off</span>
                     {current.thinkingLevel === "off" ? (
-                      <IconCheck className="text-fg-muted" size={15} stroke={1.8} />
+                      <IconCheck className="text-fg-muted" size={ICON.sm} stroke={ICON_STROKE.sm} />
                     ) : null}
                   </Menu.Item>
                   <div className="grid grid-cols-[minmax(0,1fr)_28px] gap-1">
@@ -982,13 +983,13 @@ function ModelSelect({
                       onClick={applyBudget}
                       type="button"
                     >
-                      <IconCheck size={14} stroke={1.8} />
+                      <IconCheck size={ICON.sm} stroke={ICON_STROKE.sm} />
                     </button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="mt-3 flex justify-between text-[12px] leading-4 text-fg-faint">
+                  <div className="mt-3 flex justify-between text-xs leading-4 text-fg-faint">
                     <span>Faster</span>
                     <span>Smarter</span>
                   </div>

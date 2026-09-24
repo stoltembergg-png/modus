@@ -1106,7 +1106,7 @@ function PlanBuildCard({ planBuild }: { planBuild: NonNullable<MessageBlockItem[
   return (
     <div className="timeline-wire overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2.5">
-        <IconListCheck className="shrink-0 text-fg-subtle" size={15} stroke={1.7} />
+        <IconListCheck className="shrink-0 text-fg-subtle" size={14} stroke={1.7} />
         <span className="shrink-0 font-medium text-build text-sm">Build</span>
         <span className="min-w-0 truncate text-fg text-sm">{planBuild.title}</span>
       </div>
@@ -1123,7 +1123,7 @@ function Notice({ body, isError = false, title }: NoticeBlockItem) {
     <div className="flex min-w-0 items-start gap-2 text-sm text-fg-subtle">
       <IconAlertCircle
         className={isError ? "mt-0.5 shrink-0 text-danger" : "mt-0.5 shrink-0 text-fg-faint"}
-        size={15}
+        size={14}
         stroke={1.65}
       />
       <div className="min-w-0">
@@ -1186,7 +1186,7 @@ export function Timeline({
     >
       {/* Same .chat-column token as ChatPane's composer wrapper — one width authority,
           shared by content only. The scroll container above stays full-bleed. */}
-      <div className="chat-column conversation-type relative">
+      <div className="chat-column relative">
         {turns.map((turn) => (
           <section
             className="group/turn timeline-block w-full min-w-0 space-y-6 pb-6"
