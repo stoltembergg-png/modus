@@ -46,6 +46,7 @@ import type {
 } from "../../../shared/contracts";
 import modusLogo from "../assets/modus-logo.png";
 import { SIDEBAR_MIN_WIDTH, SIDEBAR_TRANSITION, Sidebar } from "../components/Sidebar";
+import { Aurora } from "../components/ui/Aurora";
 import { ChromeMoreMenu } from "../components/ui/ChromeMoreMenu";
 import { FadeContent } from "../components/ui/FadeContent";
 import { ImageViewerProvider } from "../components/ui/ImageViewer";
@@ -877,7 +878,6 @@ export function App() {
                         onRevealProject={(id) => void revealProject(id)}
                         onNewSession={() => openNewChat()}
                         onNewWorkspaceSession={(workspace) => openNewChat(workspace)}
-                        onOpenChange={setSidebarOpen}
                         onOpenWorkspace={() => void openWorkspace()}
                         onOpenSettings={() => setSettingsOpen(true)}
                         onSelectSession={selectSession}
@@ -895,28 +895,21 @@ export function App() {
                         layoutDependency={responsiveSidebarOpen}
                         transition={{ layout: SIDEBAR_TRANSITION }}
                       >
-                        <header className="toolbar-row relative flex shrink-0 items-center px-3">
+                        <header className="toolbar-row relative z-10 flex shrink-0 items-center px-3">
                           <div className="app-no-drag flex min-w-0 flex-1 items-center gap-1.5">
-                            <AnimatePresence initial={false}>
-                              {!responsiveSidebarOpen ? (
-                                <m.div
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={{ opacity: 0, x: -4 }}
-                                  initial={{ opacity: 0, x: -4 }}
-                                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                                >
-                                  <ToolbarButton
-                                    label="Show left sidebar"
-                                    onClick={() => setSidebarOpen(true)}
-                                  >
-                                    <IconLayoutSidebar
-                                      size={TOOLBAR_ICON.size}
-                                      stroke={TOOLBAR_ICON.stroke}
-                                    />
-                                  </ToolbarButton>
-                                </m.div>
-                              ) : null}
-                            </AnimatePresence>
+                            {/* Toggle always lives here so collapse/expand never jumps
+                              between the sidebar footer and the main header. */}
+                            <ToolbarButton
+                              label={
+                                responsiveSidebarOpen ? "Collapse sidebar" : "Show left sidebar"
+                              }
+                              onClick={() => setSidebarOpen((open) => !open)}
+                            >
+                              <IconLayoutSidebar
+                                size={TOOLBAR_ICON.size}
+                                stroke={TOOLBAR_ICON.stroke}
+                              />
+                            </ToolbarButton>
                             {activeSession ? (
                               <SessionTitlePopover
                                 branch={branch}
@@ -1015,7 +1008,7 @@ export function App() {
                           ) : (
                             <m.div
                               animate={{ opacity: 1, y: 0 }}
-                              className="flex min-h-0 flex-1 flex-col items-center justify-center px-6"
+                              className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-6"
                               exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -3 }}
                               initial={reduceMotion ? false : { opacity: 0, y: 4 }}
                               key="hero"
@@ -1024,7 +1017,8 @@ export function App() {
                                 ease: "easeOut",
                               }}
                             >
-                              <div className="w-full max-w-[680px] -translate-y-4">
+                              <Aurora blend={0.55} className="opacity-90" speed={0.85} />
+                              <div className="relative z-10 w-full max-w-[680px] -translate-y-4">
                                 <div className="mb-5 flex justify-center">
                                   <ModusBot className="size-12" />
                                 </div>
