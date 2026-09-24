@@ -1180,11 +1180,13 @@ function ChatViewport({
 }) {
   return (
     <m.div
-      className="scroll-thin min-h-0 min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-clip overscroll-contain [scrollbar-gutter:stable_both-edges]"
+      className="scroll-thin relative min-h-0 min-w-0 max-w-full flex-1 overflow-y-auto overflow-x-clip overscroll-contain [scrollbar-gutter:stable_both-edges]"
       layoutScroll
       onScroll={onScroll}
       ref={scrollRef}
     >
+      {/* Viewport chrome: stronger blur at the top edge, gradient to sharp below. */}
+      <div aria-hidden className="chat-scroll-top-blur" />
       <div className="flex min-h-full min-w-0 w-full max-w-full flex-col" ref={contentRef}>
         {children}
       </div>
