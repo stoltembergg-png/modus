@@ -1,4 +1,5 @@
 name: apply-titleband-patch
+# retrigger-after-patch
 on:
   push:
     paths:
