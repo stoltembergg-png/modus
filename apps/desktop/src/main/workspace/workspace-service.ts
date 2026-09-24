@@ -3,14 +3,13 @@ import type { WorkspaceInfo } from "../../shared/contracts";
 import { archiveWorkspaceSessions, deleteWorkspaceSessions } from "../agent/session-lifecycle";
 import { isGitRepository } from "../git/git-service";
 import {
+  ensureChatsWorkspace,
   getWorkspace,
   listProjectWorkspaces,
-  listWorkspaces,
   removeWorkspace,
   renameWorkspace,
   setWorkspacePinned,
   upsertWorkspace,
-  ensureChatsWorkspace,
 } from "./workspace-store";
 
 export async function openWorkspace(): Promise<WorkspaceInfo | undefined> {
