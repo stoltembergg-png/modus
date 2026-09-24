@@ -1,4 +1,5 @@
 import TurndownService from "turndown";
+import { buildAcceptLanguageHeader } from "../browser/browser-locale";
 import { extractHtmlTitle, htmlToText, parseMcpToolResponse } from "./web-content";
 
 /**
@@ -156,7 +157,7 @@ export async function fetchWeb(
       "User-Agent": BROWSER_USER_AGENT,
       Accept:
         "text/markdown;q=1.0, text/html;q=0.9, application/xhtml+xml;q=0.8, text/plain;q=0.7, */*;q=0.5",
-      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Language": buildAcceptLanguageHeader(),
     },
     redirect: "follow",
     signal: AbortSignal.timeout(timeout),

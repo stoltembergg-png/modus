@@ -1,5 +1,6 @@
 import { app, BrowserWindow, type BrowserWindow as BrowserWindowType } from "electron";
 import { startRemoteModelCatalog, stopRemoteModelCatalog } from "./agent/model-service";
+import { resolveBrowserLocale } from "./browser/browser-locale";
 import { IPC_CHANNELS } from "./ipc/channels";
 import { registerAppIpc } from "./ipc/register-app-ipc";
 import { disposeAllMcp } from "./mcp/mcp-service";
@@ -8,13 +9,31 @@ import { shutdownTerminals } from "./terminal/terminal-service";
 import { installApplicationMenu } from "./windows/application-menu";
 import { createMainWindow } from "./windows/main-window";
 
+// Chromium UI strings / Intl follow the OS language for the embedded browser
+// and any WebContents that inherit the process locale. Must run before ready.
+try {
+  app.commandLine.appendSwitch("lang", resolveBrowserLocale());
+} catch {
+  // Locale helpers need Electron; ignore in non-Electron unit contexts.
+}
+
 let mainWindow: BrowserWindowType | null = null;
+let ipcRegistered = false;
 const startupTimeline = createStartupTimeline();
 
 startupTimeline.mark("main.entry");
 
-function boot(): void {
+function ensureAppIpcRegistered(): void {
+  if (ipcRegistered) {
+    return;
+  }
+
   registerAppIpc({ startupTimeline });
+  ipcRegistered = true;
+}
+
+function openMainWindow(): void {
+  ensureAppIpcRegistered();
 
   mainWindow = createMainWindow({ startupTimeline });
 
@@ -48,18 +67,20 @@ if (!app.requestSingleInstanceLock()) {
           window.webContents.send(IPC_CHANNELS.modelCatalogChanged);
         }
       });
-      boot();
+      openMainWindow();
+
+      // Register after ready so the first launch does not race activate → boot.
+      // Recreate the window only — IPC stays registered for the process lifetime.
+      app.on("activate", () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+          openMainWindow();
+        }
+      });
     })
     .catch((error: unknown) => {
       console.error("Failed to boot Modus desktop.", error);
       app.exit(1);
     });
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      boot();
-    }
-  });
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
