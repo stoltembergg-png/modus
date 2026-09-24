@@ -19,8 +19,8 @@ export function Tooltip({
 }: TooltipProps) {
   const motionClass =
     motion === "fade"
-      ? "transition-opacity duration-75 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0"
-      : "transition-[transform,opacity] duration-150 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0";
+      ? "transition-opacity duration-100 ease-out-quint data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none"
+      : "transition-[transform,opacity,scale] duration-150 ease-out-quint data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0 motion-reduce:transition-none";
 
   return (
     <BaseTooltip.Root>

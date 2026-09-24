@@ -17,7 +17,7 @@ export function ChromeMoreMenu({ onOpenSettings }: { onOpenSettings(): void }) {
       </Tooltip>
       <Menu.Portal>
         <Menu.Positioner align="end" side="bottom" sideOffset={6}>
-          <Menu.Popup className="origin-(--transform-origin) min-w-40 popup-chrome p-1">
+          <Menu.Popup className="origin-(--transform-origin) min-w-40 popup-chrome popup-motion p-1">
             <Menu.Item
               className="flex cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-fg text-sm outline-none transition-colors select-none data-highlighted:bg-hover"
               onClick={onOpenSettings}

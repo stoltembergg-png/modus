@@ -1,4 +1,10 @@
-import { m, useAnimationFrame, useMotionValue, useTransform } from "motion/react";
+import {
+  m,
+  useAnimationFrame,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from "motion/react";
 import { useEffect, useRef } from "react";
 import { cn } from "../../lib/cn";
 
@@ -18,6 +24,7 @@ export function ShinyText({
   speed = 2.2,
 }: ShinyTextProps) {
   const progress = useMotionValue(0);
+  const reduce = useReducedMotion();
   const elapsedRef = useRef(0);
   const lastTimeRef = useRef<number | null>(null);
   const animationDuration = speed * 1000;
@@ -25,7 +32,7 @@ export function ShinyText({
   const backgroundPosition = useTransform(progress, (value) => `${150 - value * 2}% center`);
 
   useAnimationFrame((time) => {
-    if (disabled) {
+    if (disabled || reduce) {
       lastTimeRef.current = null;
       return;
     }
@@ -49,6 +56,12 @@ export function ShinyText({
     lastTimeRef.current = null;
     progress.set(0);
   }, [progress]);
+
+  // Reduced motion: render static, readable text — no sweep, no transparent
+  // fill. Same wrapper classes, so colour/typography match the live version.
+  if (reduce) {
+    return <span className={cn("inline-block text-fg-subtle", className)}>{children}</span>;
+  }
 
   return (
     <m.span

@@ -1,6 +1,7 @@
 import { IconExternalLink } from "@tabler/icons-react";
-import { type ComponentType, useEffect, useState } from "react";
+import { type ComponentType, type ReactNode, useEffect, useState } from "react";
 import type { ContextItem, PreviewKind, PreviewReadResult } from "../../../../shared/contracts";
+import { ShinyText } from "../../components/ui/ShinyText";
 import { cn } from "../../lib/cn";
 import { loadPreviewEngine, type PreviewEngineProps } from "./registry";
 
@@ -57,7 +58,11 @@ export function PreviewHost({ cwd, path, className, onAddToChat }: PreviewHostPr
   }, [cwd, path]);
 
   if (state.status === "loading") {
-    return <Centered className={className}>Loading preview…</Centered>;
+    return (
+      <Centered className={className}>
+        <ShinyText>Loading preview…</ShinyText>
+      </Centered>
+    );
   }
   if (state.status === "error") {
     return <Unsupported className={className} cwd={cwd} message={state.message} path={path} />;
@@ -121,7 +126,7 @@ function Unsupported({
   );
 }
 
-function Centered({ children, className }: { children: string; className?: string | undefined }) {
+function Centered({ children, className }: { children: ReactNode; className?: string | undefined }) {
   return (
     <div
       className={cn(

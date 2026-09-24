@@ -56,6 +56,9 @@
   /* 悬停 / 选中 半透明白叠层 */
   --color-hover: rgba(255, 255, 255, 0.04);
   --color-active: rgba(255, 255, 255, 0.06);
+  /* Selected list row — one clear step above hover/active so the current
+     conversation / file stays obvious in a dense list. */
+  --color-selected: rgba(255, 255, 255, 0.09);
 
   /* 文本灰阶 —— 用颜色做层级，不靠字号。主色略软于纯近白，输入/正文更护眼。 */
   --color-fg: #d8d8d7;
@@ -237,11 +240,17 @@
   --color-code-line-number-active: #24292f;
   --color-code-active-line: rgba(0, 0, 0, 0.04);
   --color-code-indent-guide: rgba(0, 0, 0, 0.12);
-  --color-code-comment: #8c959f;
+  /* GitHub-Light syntax palette. Previously `comment`, `string` and `type`
+   * collided (string shared the line-number grey; type was within ~1.08:1 of
+   * the body ink), so light-theme code in the Monaco editor read as flat
+   * monochrome. `comment` is darkened past the GitHub default so it stays ≥4.5:1
+   * on the inserted/removed diff washes too (#6e7781 was only ~3.87:1 there).
+   * Values are pinned by styles/lightCodeTokens.test.ts. */
+  --color-code-comment: #59636e;
   --color-code-keyword: #c41d7f;
-  --color-code-string: #6e7781;
+  --color-code-string: #0a3069;
   --color-code-number: #cf222e;
-  --color-code-type: #24292f;
+  --color-code-type: #953800;
 
   /* Hairlines — Cursor-grade wireframe: faint ink on white, not chalk seams.
    * strong ≈ #e8e8e8 on white (was 0.18 → #d1, too heavy). All border-hairline*
@@ -262,6 +271,7 @@
   /* Hover / active overlays — black-alpha */
   --color-hover: rgba(0, 0, 0, 0.04);
   --color-active: rgba(0, 0, 0, 0.06);
+  --color-selected: rgba(0, 0, 0, 0.085);
 
   /* Text — soft near-black (Cursor-like): deep enough with weight 400, not chalk #111. */
   --color-fg: #222222;
@@ -374,6 +384,7 @@
 
   --color-hover: rgba(255, 255, 255, 0.06);
   --color-active: rgba(255, 255, 255, 0.09);
+  --color-selected: rgba(255, 255, 255, 0.11);
 
   --color-fg: #cccccc;
   --color-fg-muted: #bfbfbf;
@@ -2190,5 +2201,55 @@ body
   .inspector-tab-panel[data-starting-style],
   .inspector-tab-panel[data-ending-style] {
     opacity: 1;
+  }
+}
+
+/*
+ * Selected list row — stronger neutral fill than hover plus a quiet left rail,
+ * so the current conversation / file reads at a glance without spending the
+ * brand accent (which stays reserved for the send action). Applied to sidebar
+ * session rows and the files tree. Unlayered so it wins over Tailwind utilities.
+ */
+.row-selected {
+  position: relative;
+  background-color: var(--color-selected);
+  color: var(--color-fg);
+}
+.row-selected::before {
+  position: absolute;
+  inset-block: 25%;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 9999px;
+  background: var(--color-fg-subtle);
+  content: "";
+  pointer-events: none;
+}
+
+/*
+ * Floating-surface enter/exit (menus, popovers). Base UI stamps
+ * data-starting-style / data-ending-style; we animate from a slightly smaller,
+ * nudged-up state on the shared ease-out-quint. Kept to ~120ms so dense desktop
+ * menus stay snappy; honours prefers-reduced-motion.
+ */
+.popup-motion {
+  transform-origin: var(--transform-origin, center);
+  transition:
+    opacity 120ms var(--ease-out-quint),
+    transform 120ms var(--ease-out-quint);
+}
+.popup-motion[data-starting-style],
+.popup-motion[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.97) translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .popup-motion {
+    transition: none;
+  }
+  .popup-motion[data-starting-style],
+  .popup-motion[data-ending-style] {
+    opacity: 1;
+    transform: none;
   }
 }

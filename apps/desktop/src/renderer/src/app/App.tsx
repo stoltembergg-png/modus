@@ -1364,7 +1364,7 @@ function WorkspaceMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="start" side="bottom" sideOffset={6}>
-          <Menu.Popup className="scroll-thin origin-(--transform-origin) max-h-[360px] min-w-[260px] overflow-y-auto popup-chrome p-1">
+          <Menu.Popup className="scroll-thin origin-(--transform-origin) max-h-[360px] min-w-[260px] overflow-y-auto popup-chrome popup-motion p-1">
             <Menu.Item
               className="flex cursor-default items-center gap-2 rounded-md px-2.5 py-1.5 text-fg text-sm outline-none transition-colors select-none data-highlighted:bg-hover"
               closeOnClick
