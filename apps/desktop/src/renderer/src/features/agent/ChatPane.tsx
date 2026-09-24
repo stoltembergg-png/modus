@@ -1,1 +1,1 @@
-PLACEHOLDER_CHATPANE
+LOAD_FROM_FILE:/tmp/real_content_1.tsx
