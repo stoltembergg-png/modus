@@ -758,7 +758,7 @@ body {
     content: "";
     opacity: 0.8;
   }
-  .modus-gradient-waves[data-webgl="ready"]::before {
+  .modus-gradient-waves:has([data-webgl="ready"])::before {
     opacity: 0;
   }
   .modus-gradient-waves canvas {
