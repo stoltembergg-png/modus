@@ -28,6 +28,7 @@ import { PanelHeader } from "../../components/ui/Panel";
 import { TOOLBAR_ICON, ToolbarButton } from "../../components/ui/ToolbarButton";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { cn } from "../../lib/cn";
+import { beginResizeGesture, endResizeGesture } from "../../lib/resizeGesture";
 import type { AgentEventHub } from "../agent/agentEventHub";
 import { DiffPanel } from "../diff/DiffPanel";
 import { FilesPanel } from "../files/FilesPanel";
@@ -162,6 +163,7 @@ export function Inspector({
 }: InspectorProps) {
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
   const latestWidthRef = useRef(width);
+  const resizeHandleRef = useRef<HTMLButtonElement | null>(null);
   const [contentVisible, setContentVisible] = useState(open);
   const [internalTab, setInternalTab] = useState("changes");
   const tab = controlledTab ?? internalTab;
@@ -180,6 +182,17 @@ export function Inspector({
   // its heavy Timeline on every pointermove. open/close still animates smoothly;
   // the drag tracks the cursor 1:1 with no layout-property tween fighting it.
   const panelWidth = useMotionValue(open ? width : INSPECTOR_COLLAPSED_WIDTH);
+
+  // Never strand the body cursor/selection if the panel unmounts mid-drag.
+  useEffect(
+    () => () => {
+      if (dragStartRef.current) {
+        endResizeGesture(document.body, resizeHandleRef.current);
+        dragStartRef.current = null;
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const idleCallback = window.requestIdleCallback(() => {
@@ -229,11 +242,11 @@ export function Inspector({
     event.preventDefault();
     dragStartRef.current = { x: event.clientX, width };
     latestWidthRef.current = width;
+    resizeHandleRef.current = event.currentTarget;
     event.currentTarget.setPointerCapture(event.pointerId);
     // Keep the resize cursor + kill text selection for the whole gesture without
     // a React state flip.
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
+    beginResizeGesture(document.body, event.currentTarget);
   }
 
   function resize(event: PointerEvent<HTMLButtonElement>): void {
@@ -257,8 +270,8 @@ export function Inspector({
       return;
     }
     dragStartRef.current = null;
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
+    endResizeGesture(document.body, resizeHandleRef.current);
+    resizeHandleRef.current = null;
     const finalWidth = latestWidthRef.current;
     // Drag-to-collapse: snapping below the floor closes the panel and keeps the
     // last good width (so reopening doesn't land on a sliver). Otherwise commit
@@ -281,10 +294,12 @@ export function Inspector({
         <>
           <button
             aria-label="Resize right panel"
-            className="app-no-drag absolute top-0 bottom-0 left-0 z-20 w-3 cursor-col-resize before:absolute before:top-0 before:bottom-0 before:left-0 before:w-px before:bg-transparent hover:before:bg-chip-strong"
+            className="app-no-drag absolute top-0 bottom-0 left-0 z-20 w-3 cursor-col-resize before:absolute before:top-0 before:bottom-0 before:left-0 before:w-px before:bg-transparent hover:before:bg-chip-strong data-[resizing]:before:bg-fg-subtle"
+            onBlur={stopResize}
+            onLostPointerCapture={stopResize}
+            onPointerCancel={stopResize}
             onPointerDown={startResize}
             onPointerMove={resize}
-            onPointerCancel={stopResize}
             onPointerUp={stopResize}
             type="button"
           />

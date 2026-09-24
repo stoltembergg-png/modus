@@ -885,7 +885,7 @@ function ReviewToolbar({
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner align="start" side="bottom" sideOffset={6}>
-            <Menu.Popup className="origin-(--transform-origin) min-w-[170px] popup-chrome p-1">
+            <Menu.Popup className="origin-(--transform-origin) min-w-[170px] popup-chrome popup-motion p-1">
               <MenuChoice checked={scope === "unstaged"} onClick={() => onScope("unstaged")}>
                 Unstaged
               </MenuChoice>
@@ -1073,7 +1073,7 @@ function OverflowMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="end" side="bottom" sideOffset={6}>
-          <Menu.Popup className="origin-(--transform-origin) min-w-[220px] popup-chrome p-1">
+          <Menu.Popup className="origin-(--transform-origin) min-w-[220px] popup-chrome popup-motion p-1">
             <Menu.SubmenuRoot>
               <Menu.SubmenuTrigger className="flex cursor-default items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-fg text-sm outline-none select-none data-highlighted:bg-hover data-popup-open:bg-hover">
                 Layout
@@ -1084,7 +1084,7 @@ function OverflowMenu({
               </Menu.SubmenuTrigger>
               <Menu.Portal>
                 <Menu.Positioner align="start" side="right" sideOffset={4}>
-                  <Menu.Popup className="origin-(--transform-origin) min-w-[150px] popup-chrome p-1">
+                  <Menu.Popup className="origin-(--transform-origin) min-w-[150px] popup-chrome popup-motion p-1">
                     <MenuChoice
                       checked={layout === "unified"}
                       onClick={() => onSetLayout("unified")}
@@ -1213,7 +1213,7 @@ function ScopeSubmenu({
       </Menu.SubmenuTrigger>
       <Menu.Portal>
         <Menu.Positioner align="start" side="right" sideOffset={4}>
-          <Menu.Popup className="scroll-thin max-h-[360px] min-w-[240px] overflow-y-auto popup-chrome p-1">
+          <Menu.Popup className="scroll-thin max-h-[360px] min-w-[240px] overflow-y-auto popup-chrome popup-motion p-1">
             {children}
           </Menu.Popup>
         </Menu.Positioner>

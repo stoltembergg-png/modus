@@ -148,7 +148,7 @@ export function BranchSwitcher({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align={align} side="bottom" sideOffset={6}>
-          <Menu.Popup className="origin-(--transform-origin) min-w-[260px] popup-chrome p-2">
+          <Menu.Popup className="origin-(--transform-origin) min-w-[260px] popup-chrome popup-motion p-2">
             {!branches ? (
               <div className="px-2.5 py-3 text-center text-2xs text-fg-faint">
                 <ShinyText>Loading…</ShinyText>

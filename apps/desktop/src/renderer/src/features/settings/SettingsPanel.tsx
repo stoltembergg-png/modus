@@ -55,6 +55,7 @@ import type {
 } from "../../../../shared/contracts";
 import { CollapsibleMotion } from "../../components/ui/CollapsibleMotion";
 import { ContentTransition } from "../../components/ui/ContentTransition";
+import { EmptyState } from "../../components/ui/Panel";
 import { ShinyText } from "../../components/ui/ShinyText";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { cn } from "../../lib/cn";
@@ -1018,8 +1019,9 @@ function ProviderCatalog({
             </>
           ) : (
             <EmptyState
+              compact
               description="Try another provider name, model count, or source."
-              title="No providers found"
+              hint="No providers found"
             />
           )}
         </div>
@@ -1053,9 +1055,9 @@ function ProviderConfigDialogShell({
       open={open}
     >
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-fg/20 backdrop-blur-[1px] transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-fg/20 backdrop-blur-[1px] transition-opacity duration-150 motion-reduce:transition-none data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-6 py-6">
-          <Dialog.Popup className="flex h-[min(820px,calc(100vh-48px))] w-full max-w-[760px] flex-col overflow-hidden rounded-lg border border-popup-border bg-canvas shadow-popup outline-none transition-[opacity,transform] duration-150 data-ending-style:translate-y-2 data-ending-style:opacity-0 data-starting-style:translate-y-2 data-starting-style:opacity-0">
+          <Dialog.Popup className="flex h-[min(820px,calc(100vh-48px))] w-full max-w-[760px] flex-col overflow-hidden rounded-lg border border-popup-border bg-canvas shadow-popup outline-none transition-[opacity,transform] duration-150 motion-reduce:transition-none data-ending-style:translate-y-2 data-ending-style:opacity-0 data-starting-style:translate-y-2 data-starting-style:opacity-0">
             <div className="flex h-[52px] items-center justify-between gap-3 px-5">
               <Dialog.Close
                 aria-label={`Back from ${title}`}
@@ -1151,8 +1153,9 @@ function ProviderDetailDialog({
         />
       ) : (
         <EmptyState
+          compact
           description="The selected provider is not available anymore. Close this panel and choose another provider."
-          title="Provider unavailable"
+          hint="Provider unavailable"
         />
       )}
     </ProviderConfigDialogShell>
@@ -3708,8 +3711,9 @@ function ProviderDetail({
                 ))
               ) : (
                 <EmptyState
+                  compact
                   description="Adjust the search text or filter to bring models back."
-                  title="No models match"
+                  hint="No models match"
                 />
               )}
             </div>
@@ -4225,15 +4229,6 @@ function ModelKindBadge({ model }: { model: ProviderModelConfig }) {
 
 function TinyBadge({ children }: { children: string }) {
   return <span className="rounded bg-chip px-1.5 py-0.5 text-2xs text-fg-faint">{children}</span>;
-}
-
-function EmptyState({ description, title }: { description: string; title: string }) {
-  return (
-    <div className="px-5 py-10 text-center">
-      <div className="text-sm text-fg-muted">{title}</div>
-      <div className="mx-auto mt-1 max-w-[300px] text-xs text-fg-faint">{description}</div>
-    </div>
-  );
 }
 
 type ProviderStatus = "available" | "connected" | "error";

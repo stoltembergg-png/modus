@@ -409,7 +409,7 @@ function VisualMenu({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="end" side="bottom" sideOffset={6}>
-          <Menu.Popup className="origin-(--transform-origin) min-w-[190px] popup-chrome p-1">
+          <Menu.Popup className="origin-(--transform-origin) min-w-[190px] popup-chrome popup-motion p-1">
             <Menu.Item
               className="flex h-9 cursor-default items-center gap-2 rounded-md px-2.5 text-fg-subtle text-sm outline-none select-none data-highlighted:bg-hover data-highlighted:text-fg"
               onClick={copy}

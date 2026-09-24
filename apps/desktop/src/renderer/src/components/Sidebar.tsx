@@ -31,6 +31,7 @@ import { CHATS_WORKSPACE_ID } from "../../../shared/contracts";
 import type { SessionActivity } from "../features/agent/agentEventHub";
 import { SessionStatusDot } from "../features/agent/SessionStatusDot";
 import { cn } from "../lib/cn";
+import { beginResizeGesture, endResizeGesture } from "../lib/resizeGesture";
 import { ICON, ICON_STROKE } from "../lib/uiDensity";
 import { useScrollFade } from "../lib/useScrollFade";
 import { CollapsibleMotion } from "./ui/CollapsibleMotion";
@@ -137,6 +138,7 @@ export function Sidebar({
 
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
   const latestWidthRef = useRef(width);
+  const resizeHandleRef = useRef<HTMLButtonElement | null>(null);
   const reduceMotion = useReducedMotion();
   const panelWidth = useMotionValue(width);
   const isMac = window.modus?.app.platform === "darwin";
@@ -145,13 +147,24 @@ export function Sidebar({
     if (!dragStartRef.current) panelWidth.set(width);
   }, [width, panelWidth]);
 
+  // Never strand the body cursor/selection if the panel unmounts mid-drag.
+  useEffect(
+    () => () => {
+      if (dragStartRef.current) {
+        endResizeGesture(document.body, resizeHandleRef.current);
+        dragStartRef.current = null;
+      }
+    },
+    [],
+  );
+
   const startResize = (event: PointerEvent<HTMLButtonElement>): void => {
     event.preventDefault();
     dragStartRef.current = { x: event.clientX, width };
     latestWidthRef.current = width;
+    resizeHandleRef.current = event.currentTarget;
     event.currentTarget.setPointerCapture(event.pointerId);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
+    beginResizeGesture(document.body, event.currentTarget);
   };
 
   const resize = (event: PointerEvent<HTMLButtonElement>): void => {
@@ -176,8 +189,8 @@ export function Sidebar({
       return;
     }
     dragStartRef.current = null;
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
+    endResizeGesture(document.body, resizeHandleRef.current);
+    resizeHandleRef.current = null;
     const finalWidth = latestWidthRef.current;
     onWidthChange(finalWidth);
   };
@@ -344,7 +357,9 @@ export function Sidebar({
       {open ? (
         <button
           aria-label="Resize left panel"
-          className="app-no-drag absolute top-0 right-0 bottom-0 z-20 w-3 cursor-col-resize"
+          className="app-no-drag absolute top-0 right-0 bottom-0 z-20 w-3 cursor-col-resize before:absolute before:inset-y-0 before:right-0 before:w-px before:bg-transparent before:transition-colors hover:before:bg-chip-strong data-[resizing]:before:bg-fg-subtle"
+          onBlur={stopResize}
+          onLostPointerCapture={stopResize}
           onPointerCancel={stopResize}
           onPointerDown={startResize}
           onPointerMove={resize}
@@ -562,7 +577,7 @@ function SessionRow({
       className={cn(
         SB_SESSION,
         "group",
-        isActive ? "bg-active text-fg-muted" : "text-fg-subtle hover:bg-hover hover:text-fg-muted",
+        isActive ? "row-selected" : "text-fg-subtle hover:bg-hover hover:text-fg-muted",
       )}
       layout
       onBlurCapture={(event) => {
@@ -925,7 +940,7 @@ function ProjectActions({
       {children(open, trigger)}
       <Menu.Portal>
         <Menu.Positioner align="start" side="bottom" sideOffset={4}>
-          <Menu.Popup className="origin-(--transform-origin) min-w-[184px] popup-chrome p-1">
+          <Menu.Popup className="origin-(--transform-origin) min-w-[184px] popup-chrome popup-motion p-1">
             <ProjectMenuItem
               icon={
                 pinned ? (

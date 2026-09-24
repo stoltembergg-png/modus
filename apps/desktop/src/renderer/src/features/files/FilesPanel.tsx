@@ -10,6 +10,7 @@ import {
   IconFolder,
   IconFolderOpen,
   IconFolders,
+  IconLoader2,
   IconSearch,
 } from "@tabler/icons-react";
 import { animate, m, useMotionValue } from "motion/react";
@@ -32,6 +33,7 @@ import { type CodeSelectionRange, CodeViewer } from "../../components/code/CodeV
 import { EmptyState } from "../../components/ui/Panel";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { cn } from "../../lib/cn";
+import { beginResizeGesture, endResizeGesture } from "../../lib/resizeGesture";
 import { MarkdownExcerptPreview } from "../preview/MarkdownExcerptPreview";
 import { PreviewHost } from "../preview/PreviewHost";
 import { materialIconForEntry } from "./fileIcons";
@@ -117,6 +119,7 @@ export function FilesPanel({ cwd, onAddToChat, revealPath, onRevealConsumed }: F
   const treeW = useMotionValue(DEFAULT_TREE_WIDTH);
   const dragRef = useRef<{ x: number; width: number } | null>(null);
   const latestWidthRef = useRef(DEFAULT_TREE_WIDTH);
+  const resizeHandleRef = useRef<HTMLButtonElement | null>(null);
   const selectedPathRef = useRef<string | undefined>(undefined);
   const childrenKeysRef = useRef<string[]>([]);
   const savedContentRef = useRef<string | undefined>(undefined);
@@ -132,6 +135,17 @@ export function FilesPanel({ cwd, onAddToChat, revealPath, onRevealConsumed }: F
     const controls = animate(treeW, treeOpen ? treeWidth : 0, TREE_TRANSITION);
     return () => controls.stop();
   }, [treeOpen, treeWidth, treeW]);
+
+  // Never strand the body cursor/selection if the divider unmounts mid-drag.
+  useEffect(
+    () => () => {
+      if (dragRef.current) {
+        endResizeGesture(document.body, resizeHandleRef.current);
+        dragRef.current = null;
+      }
+    },
+    [],
+  );
 
   // (Re)load the root whenever the workspace changes; reset all tree state.
   useEffect(() => {
@@ -269,9 +283,9 @@ export function FilesPanel({ cwd, onAddToChat, revealPath, onRevealConsumed }: F
     event.preventDefault();
     dragRef.current = { x: event.clientX, width: treeWidth };
     latestWidthRef.current = treeWidth;
+    resizeHandleRef.current = event.currentTarget;
     event.currentTarget.setPointerCapture(event.pointerId);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
+    beginResizeGesture(document.body, event.currentTarget);
   }
 
   function resize(event: PointerEvent<HTMLButtonElement>): void {
@@ -292,8 +306,8 @@ export function FilesPanel({ cwd, onAddToChat, revealPath, onRevealConsumed }: F
       return;
     }
     dragRef.current = null;
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
+    endResizeGesture(document.body, resizeHandleRef.current);
+    resizeHandleRef.current = null;
     setTreeWidth(latestWidthRef.current);
   }
 
@@ -533,7 +547,9 @@ export function FilesPanel({ cwd, onAddToChat, revealPath, onRevealConsumed }: F
         {treeOpen ? (
           <button
             aria-label="Resize file tree"
-            className="-ml-px relative z-10 w-1 shrink-0 cursor-col-resize transition-colors hover:bg-chip-strong"
+            className="-ml-px relative z-10 w-1 shrink-0 cursor-col-resize transition-colors hover:bg-chip-strong data-[resizing]:bg-fg-faint"
+            onBlur={stopResize}
+            onLostPointerCapture={stopResize}
             onPointerCancel={stopResize}
             onPointerDown={startResize}
             onPointerMove={resize}
@@ -632,7 +648,7 @@ function FileActions({
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner align="end" side="bottom" sideOffset={6}>
-            <Menu.Popup className="origin-(--transform-origin) min-w-[190px] popup-chrome p-1">
+            <Menu.Popup className="origin-(--transform-origin) min-w-[190px] popup-chrome popup-motion p-1">
               <MenuAction
                 icon={<IconCopy size={16} stroke={1.75} />}
                 onClick={() => file && void navigator.clipboard.writeText(file.path)}
@@ -737,7 +753,7 @@ function FileRow({
       className={cn(
         // Cursor-like density: airy row (36px) + 12px muted label so text floats with breathing room.
         "flex h-9 w-full min-w-0 items-center gap-1.5 rounded-sm pr-2 text-left text-2xs font-normal leading-none transition-colors",
-        selected ? "bg-active text-fg" : "text-fg hover:bg-hover",
+        selected ? "bg-selected text-fg" : "text-fg hover:bg-hover",
       )}
       onClick={onActivate}
       style={{ paddingLeft: `${8 + depth * 12}px` }}
@@ -745,15 +761,22 @@ function FileRow({
       type="button"
     >
       {isDir ? (
-        <IconChevronRight
-          className={cn(
-            "shrink-0 text-fg-faint transition-transform duration-150",
-            expanded && "rotate-90",
-            loading && "animate-pulse",
-          )}
-          size={12}
-          stroke={1.5}
-        />
+        loading ? (
+          <IconLoader2
+            className="shrink-0 animate-spin text-fg-faint motion-reduce:animate-none"
+            size={12}
+            stroke={1.5}
+          />
+        ) : (
+          <IconChevronRight
+            className={cn(
+              "shrink-0 text-fg-faint transition-transform duration-150",
+              expanded && "rotate-90",
+            )}
+            size={12}
+            stroke={1.5}
+          />
+        )
       ) : (
         <span className="w-3 shrink-0" />
       )}

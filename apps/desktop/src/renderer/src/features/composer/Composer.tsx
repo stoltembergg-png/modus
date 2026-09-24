@@ -6,6 +6,7 @@ import {
   IconChevronDown,
   IconHelpCircle,
   IconListCheck,
+  IconLoader2,
   IconPlus,
   IconSparkles,
   IconX,
@@ -749,7 +750,15 @@ export function Composer({
             }}
             type="button"
           >
-            <PromptSendGlyph busy={isRunning} className="block size-3.5 origin-center" />
+            {submitting && !isRunning ? (
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size={ICON.sm}
+                stroke={ICON_STROKE.sm}
+              />
+            ) : (
+              <PromptSendGlyph busy={isRunning} className="block size-3.5 origin-center" />
+            )}
           </button>
         </div>
       </div>
@@ -887,7 +896,7 @@ function ModelSelect({
         <Menu.Portal>
           <Menu.Positioner align="start" side="top" sideOffset={8}>
             <Menu.Popup
-              className="scroll-thin origin-(--transform-origin) w-[240px] max-w-[calc(100vw-24px)] overflow-y-auto popup-chrome p-1"
+              className="scroll-thin origin-(--transform-origin) w-[240px] max-w-[calc(100vw-24px)] overflow-y-auto popup-chrome popup-motion p-1"
               style={{ maxHeight: "min(320px, var(--available-height))" }}
             >
               {providerGroups.map((group) => (
@@ -939,7 +948,7 @@ function ModelSelect({
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner align="start" side="top" sideOffset={8}>
-            <Menu.Popup className="origin-(--transform-origin) w-[248px] max-w-[calc(100vw-24px)] popup-chrome px-3.5 pt-3 pb-3.5">
+            <Menu.Popup className="origin-(--transform-origin) w-[248px] max-w-[calc(100vw-24px)] popup-chrome popup-motion px-3.5 pt-3 pb-3.5">
               <div className="flex items-center gap-2 text-sm leading-[18px]">
                 <span className="text-fg-faint">Effort</span>
                 <span className="font-medium text-fg">{effortLabel}</span>

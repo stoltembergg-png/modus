@@ -61,7 +61,7 @@ export function SessionTitlePopover({
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner align="start" side="bottom" sideOffset={6}>
-          <Popover.Popup className="origin-(--transform-origin) w-[min(320px,calc(100vw-24px))] popup-chrome p-3 outline-none">
+          <Popover.Popup className="origin-(--transform-origin) w-[min(320px,calc(100vw-24px))] popup-chrome popup-motion p-3 outline-none">
             <div className="mb-2.5 truncate px-1 text-sm text-fg">{session.title}</div>
             <div className="flex flex-col gap-2.5">
               <SessionMetaRow
