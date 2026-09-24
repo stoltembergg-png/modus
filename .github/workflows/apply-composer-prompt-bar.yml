@@ -4,7 +4,7 @@ on:
     branches: [cursor/composer-prompt-bar-ui-5588]
     paths:
       - .github/workflows/apply-composer-prompt-bar.yml
-      - .github/agent-staging/composer-prompt-bar.b64.00
+      - .github/agent-staging/composer-prompt-bar.patch
 permissions:
   contents: write
 concurrency:
@@ -22,8 +22,21 @@ jobs:
         run: |
           set -euo pipefail
           STAGING=".github/agent-staging"
-          test -f "$STAGING/composer-prompt-bar.b64.00"
-          cat "$STAGING"/composer-prompt-bar.b64.* | base64 -d | gzip -d | patch -p1
+          PATCH="$STAGING/composer-prompt-bar.patch"
+          test -f "$PATCH"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path(".github/agent-staging/composer-prompt-bar.patch")
+          text = p.read_text()
+          bad = '-                          onClick={() => void onModelConfigChange?.(current.id, "off")}>'
+          good = '-                          onClick={() => void onModelConfigChange?.(current.id, "off")}\n-                        >'
+          if bad in text:
+              p.write_text(text.replace(bad, good, 1))
+              print("fixed mangled off-handler line")
+          else:
+              print("patch line ok")
+          PY
+          patch -p1 < "$PATCH"
           rm -rf "$STAGING"
           rm -f .github/workflows/apply-composer-prompt-bar.yml
           git config user.name "github-actions[bot]"
