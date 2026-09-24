@@ -1,5 +1,6 @@
 import { app, BrowserWindow, type BrowserWindow as BrowserWindowType } from "electron";
 import { startRemoteModelCatalog, stopRemoteModelCatalog } from "./agent/model-service";
+import { resolveBrowserLocale } from "./browser/browser-locale";
 import { IPC_CHANNELS } from "./ipc/channels";
 import { registerAppIpc } from "./ipc/register-app-ipc";
 import { disposeAllMcp } from "./mcp/mcp-service";
@@ -7,6 +8,14 @@ import { createStartupTimeline } from "./startup/startup-timeline";
 import { shutdownTerminals } from "./terminal/terminal-service";
 import { installApplicationMenu } from "./windows/application-menu";
 import { createMainWindow } from "./windows/main-window";
+
+// Chromium UI strings / Intl follow the OS language for the embedded browser
+// and any WebContents that inherit the process locale. Must run before ready.
+try {
+  app.commandLine.appendSwitch("lang", resolveBrowserLocale());
+} catch {
+  // Locale helpers need Electron; ignore in non-Electron unit contexts.
+}
 
 let mainWindow: BrowserWindowType | null = null;
 let ipcRegistered = false;

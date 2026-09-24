@@ -1,4 +1,5 @@
 import type { Session } from "electron";
+import { applySessionLocale, googleSearchUrl } from "./browser-locale";
 
 /**
  * Security policy for the in-app browser: URL normalization with a protocol
@@ -42,7 +43,7 @@ export function normalizeBrowserUrl(rawInput: string): string {
     return `https://${input}`;
   }
 
-  return `https://www.google.com/search?q=${encodeURIComponent(input)}`;
+  return googleSearchUrl(input);
 }
 
 /** Permissions that are harmless without a user gesture. Everything else —
@@ -61,6 +62,10 @@ export function applySessionSecurity(session: Session): void {
     return;
   }
   securedSessions.add(session);
+
+  // Match Chromium's Accept-Language / spell-check to the OS language so
+  // Google and friends don't render a random default locale.
+  applySessionLocale(session);
 
   session.setPermissionRequestHandler((_webContents, permission, callback) => {
     callback(ALLOWED_PERMISSIONS.has(permission));

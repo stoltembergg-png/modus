@@ -47,7 +47,7 @@ float snoise(vec2 v){
   );
 
   vec3 m = max(
-      0.5 - vec3(
+    0.5 - vec3(
           dot(x0, x0),
           dot(x12.xy, x12.xy),
           dot(x12.zw, x12.zw)
@@ -274,7 +274,16 @@ export function Aurora({
   return (
     <div
       aria-hidden
-      className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
+      className={cn(
+        "pointer-events-none absolute inset-0 overflow-hidden",
+        // Soft-edge mask so the aurora band dissolves into the canvas instead
+        // of reading as a hard WebGL rectangle (React Bits–style vignette).
+        "[mask-image:linear-gradient(to_right,transparent_0%,#000_10%,#000_90%,transparent_100%),linear-gradient(to_bottom,transparent_0%,#000_12%,#000_70%,transparent_100%)]",
+        "[mask-composite:intersect]",
+        "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,#000_10%,#000_90%,transparent_100%),linear-gradient(to_bottom,transparent_0%,#000_12%,#000_70%,transparent_100%)]",
+        "[-webkit-mask-composite:source-in]",
+        className,
+      )}
       ref={containerRef}
     />
   );
