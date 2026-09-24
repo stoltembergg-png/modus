@@ -245,6 +245,16 @@ export function Composer({
   const hasInlineTokens = contextItems.length > 0 || hasSelectedSkills;
   const hasContent = hasText || hasImages || contextItems.length > 0 || hasSelectedSkills;
   const currentModel = models.find((item) => item.id === model) ?? models[0];
+  const effortThinkingOptions = currentModel ? modelThinkingOptions(currentModel) : [];
+  const effortThinkingSelection = currentModel ? selectedThinkingOption(currentModel) : undefined;
+  const discreteEffortOptions = currentModel?.thinkingBudget ? [] : effortThinkingOptions;
+  const effortMaxed = Boolean(
+    currentModel?.supportsThinking &&
+      discreteEffortOptions.length > 1 &&
+      effortThinkingSelection &&
+      discreteEffortOptions[discreteEffortOptions.length - 1]?.value ===
+        effortThinkingSelection.value,
+  );
   const {
     activeIndex,
     isOpen,
@@ -555,7 +565,7 @@ export function Composer({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-drop is a pointer-only enhancement; keyboard users attach images via paste in the editor. */}
       <div
         className={cn(
-          "relative border border-composer-border bg-surface shadow-composer-edge transition-[border-color] duration-150",
+          "composer-prompt-shell relative border border-composer-border bg-surface shadow-composer-edge transition-[border-color] duration-150",
           COMPOSER_RADIUS_CLASS,
           Boolean(footer) && "z-10",
           // No focus glow: only text focus or drag nudges the border one notch brighter.
@@ -563,6 +573,7 @@ export function Composer({
           dragging && "border-composer-border-strong",
           submitting && "pointer-events-none opacity-60",
         )}
+        {...(effortMaxed ? { "data-effort-max": "" } : {})}
         onDragLeave={() => setDragging(false)}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
@@ -828,6 +839,8 @@ function ModelSelect({
 
   const chipClass =
     "app-no-drag inline-flex h-7 min-w-0 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-fg-muted outline-none transition-colors select-none hover:bg-hover hover:text-fg data-popup-open:bg-hover data-popup-open:text-fg data-disabled:pointer-events-none data-disabled:opacity-45";
+  // Prompt Bar: both model + effort chips turn spark purple at max effort.
+  const chipMaxClass = "text-[color:var(--color-focus-ring-soft)] hover:text-[color:var(--color-focus-ring-soft)]";
 
   if (!current) {
     return (
@@ -846,7 +859,10 @@ function ModelSelect({
   return (
     <div className="flex min-w-0 items-center gap-0.5">
       <Menu.Root>
-        <Menu.Trigger aria-label="Choose model" className={chipClass}>
+        <Menu.Trigger
+          aria-label="Choose model"
+          className={cn(chipClass, effortMaxed && chipMaxClass)}
+        >
           <ProviderLogo
             framed={false}
             name={current.providerName ?? current.provider}
@@ -903,7 +919,7 @@ function ModelSelect({
       <Menu.Root>
         <Menu.Trigger
           aria-label="Choose effort"
-          className={cn(chipClass, effortMaxed && "text-accent hover:text-accent")}
+          className={cn(chipClass, effortMaxed && chipMaxClass)}
           disabled={!effortAvailable || !onModelConfigChange}
         >
           <IconSparkles className="shrink-0" size={13} stroke={2} />
