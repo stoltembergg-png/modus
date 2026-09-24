@@ -9,12 +9,22 @@ import { installApplicationMenu } from "./windows/application-menu";
 import { createMainWindow } from "./windows/main-window";
 
 let mainWindow: BrowserWindowType | null = null;
+let ipcRegistered = false;
 const startupTimeline = createStartupTimeline();
 
 startupTimeline.mark("main.entry");
 
-function boot(): void {
+function ensureAppIpcRegistered(): void {
+  if (ipcRegistered) {
+    return;
+  }
+
   registerAppIpc({ startupTimeline });
+  ipcRegistered = true;
+}
+
+function openMainWindow(): void {
+  ensureAppIpcRegistered();
 
   mainWindow = createMainWindow({ startupTimeline });
 
@@ -48,18 +58,20 @@ if (!app.requestSingleInstanceLock()) {
           window.webContents.send(IPC_CHANNELS.modelCatalogChanged);
         }
       });
-      boot();
+      openMainWindow();
+
+      // Register after ready so the first launch does not race activate → boot.
+      // Recreate the window only — IPC stays registered for the process lifetime.
+      app.on("activate", () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+          openMainWindow();
+        }
+      });
     })
     .catch((error: unknown) => {
       console.error("Failed to boot Modus desktop.", error);
       app.exit(1);
     });
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      boot();
-    }
-  });
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
