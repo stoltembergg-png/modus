@@ -50,6 +50,7 @@ import type {
   SkillInfo,
   SubagentDetail,
   SubagentInfo,
+  WorkspaceAgentsState,
   WorkspaceInfo,
 } from "../../../../shared/contracts";
 import { CollapsibleMotion } from "../../components/ui/CollapsibleMotion";
@@ -218,6 +219,27 @@ export function SettingsPanel({
       });
       onRefresh();
       setDetail(await window.modus.model.providerDetail(detail.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setAllProviderModels(enabled: boolean): Promise<void> {
+    if (!detail) {
+      return;
+    }
+    setBusy(true);
+    setError(undefined);
+    try {
+      setDetail(
+        await window.modus.model.setProviderModelsEnabled({
+          provider: detail.id,
+          enabled,
+        }),
+      );
+      onRefresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -574,6 +596,7 @@ export function SettingsPanel({
               onProviderAuthRespond={(value) => void respondProviderAuth(value)}
               onRefreshCatalog={onRefreshCatalog}
               onSelectProvider={(provider) => void selectProvider(provider)}
+              onSetAllModels={(enabled) => void setAllProviderModels(enabled)}
               onToggleModel={(model, enabled) => void toggleModel(model, enabled)}
               popular={popular}
             />
@@ -761,6 +784,7 @@ function ModelProviderSettingsPanel({
   onOpenProviderConnection,
   onRefreshCatalog,
   onSelectProvider,
+  onSetAllModels,
   onToggleModel,
 }: {
   authOperation: ProviderAuthOperationState | undefined;
@@ -797,6 +821,7 @@ function ModelProviderSettingsPanel({
   onOpenProviderConnection(provider: ModelProviderInfo): void;
   onRefreshCatalog(): Promise<void>;
   onSelectProvider(provider: ModelProviderInfo): void;
+  onSetAllModels(enabled: boolean): void;
   onToggleModel(model: ProviderModelConfig, enabled: boolean): void;
 }) {
   const [providerQuery, setProviderQuery] = useState("");
@@ -888,6 +913,7 @@ function ModelProviderSettingsPanel({
         onEditProvider={onEditProvider}
         onKeyChange={onKeyChange}
         onOpenProviderConnection={onOpenProviderConnection}
+        onSetAllModels={onSetAllModels}
         onToggleModel={onToggleModel}
       />
 
@@ -1072,6 +1098,7 @@ function ProviderDetailDialog({
   onEditProvider,
   onKeyChange,
   onOpenProviderConnection,
+  onSetAllModels,
   onToggleModel,
 }: {
   busy: boolean;
@@ -1089,6 +1116,7 @@ function ProviderDetailDialog({
   onEditProvider(providerId: string): void;
   onKeyChange(apiKey: string): void;
   onOpenProviderConnection(provider: ModelProviderInfo): void;
+  onSetAllModels(enabled: boolean): void;
   onToggleModel(model: ProviderModelConfig, enabled: boolean): void;
 }) {
   const title = detail ? `Configure ${detail.name}` : "Configure provider";
@@ -1118,6 +1146,7 @@ function ProviderDetailDialog({
           onEditProvider={onEditProvider}
           onKeyChange={onKeyChange}
           onOpenProviderConnection={() => onOpenProviderConnection(detail)}
+          onSetAllModels={onSetAllModels}
           onToggleModel={onToggleModel}
         />
       ) : (
@@ -2366,18 +2395,30 @@ function ThemeToggle({
 
 function RulesSettingsPanel({ cwd }: { cwd: string | undefined }) {
   const [rules, setRules] = useState<RuleFileInfo[]>([]);
+  const [agents, setAgents] = useState<WorkspaceAgentsState | undefined>();
+  const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [rulesError, setRulesError] = useState<string | undefined>();
+  const [message, setMessage] = useState<string | undefined>();
 
   async function refresh(): Promise<void> {
     if (!cwd) {
       setRules([]);
+      setAgents(undefined);
+      setDraft("");
       return;
     }
     setLoading(true);
     setRulesError(undefined);
     try {
-      setRules(await window.modus.rules.list(cwd));
+      const [nextRules, nextAgents] = await Promise.all([
+        window.modus.rules.list(cwd),
+        window.modus.rules.getAgents(cwd),
+      ]);
+      setRules(nextRules);
+      setAgents(nextAgents);
+      setDraft(nextAgents.exists ? nextAgents.content : nextAgents.example);
     } catch (error) {
       setRulesError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -2401,42 +2442,149 @@ function RulesSettingsPanel({ cwd }: { cwd: string | undefined }) {
     }
   }
 
+  async function saveAgents(): Promise<void> {
+    if (!cwd) {
+      return;
+    }
+    setSaving(true);
+    setRulesError(undefined);
+    setMessage(undefined);
+    try {
+      const next = await window.modus.rules.saveAgents({ cwd, content: draft });
+      setAgents(next);
+      setDraft(next.content);
+      setMessage(next.exists ? "AGENTS.md saved." : "AGENTS.md created.");
+      setRules(await window.modus.rules.list(cwd));
+    } catch (error) {
+      setRulesError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function useExample(): void {
+    if (!agents) {
+      return;
+    }
+    setDraft(agents.example);
+    setMessage(undefined);
+  }
+
   const autoApplied = rules.filter((rule) => rule.mode === "always");
+  const dirty = agents ? draft !== (agents.exists ? agents.content : agents.example) : false;
+  const exampleLoaded = Boolean(agents && !agents.exists && draft === agents.example);
 
   return (
     <>
       <SettingsPageHeader
         actions={
-          <button
-            className="flex h-8 items-center gap-1.5 rounded-md border border-hairline bg-surface px-2.5 text-xs text-fg transition-colors hover:bg-hover disabled:opacity-40"
-            disabled={!cwd || loading}
-            onClick={() => void refresh()}
-            type="button"
-          >
-            <IconRefresh size={14} stroke={1.7} />
-            {loading ? <ShinyText>Refreshing…</ShinyText> : "Refresh"}
-          </button>
+          <>
+            <button
+              className="flex h-8 items-center gap-1.5 rounded-md border border-hairline bg-surface px-2.5 text-xs text-fg transition-colors hover:bg-hover disabled:opacity-40"
+              disabled={!cwd || loading}
+              onClick={() => void refresh()}
+              type="button"
+            >
+              <IconRefresh size={14} stroke={1.7} />
+              {loading ? <ShinyText>Refreshing…</ShinyText> : "Refresh"}
+            </button>
+            <button
+              className="flex h-8 items-center gap-1.5 rounded-md bg-fg px-2.5 text-canvas text-xs transition-colors hover:bg-fg-muted disabled:opacity-40"
+              disabled={!cwd || loading || saving || (!dirty && Boolean(agents?.exists))}
+              onClick={() => void saveAgents()}
+              type="button"
+            >
+              <IconCheck size={13} stroke={2} />
+              {saving ? (
+                <ShinyText className="text-canvas">Saving…</ShinyText>
+              ) : agents?.exists ? (
+                "Save"
+              ) : (
+                "Create AGENTS.md"
+              )}
+            </button>
+          </>
         }
         description="Project rules are injected into every agent session automatically when marked Always Apply (AGENTS.md, CLAUDE.md, .cursorrules, or .cursor/rules/*.mdc with alwaysApply: true). Other rules stay available through the @rules context attachment."
         title="Rules"
       />
 
       {rulesError ? <p className="-mt-4 text-danger text-xs">{rulesError}</p> : null}
+      {message ? <p className="-mt-4 text-success text-xs">{message}</p> : null}
+
+      <SettingsSection
+        title="AGENTS.md"
+        description={
+          exampleLoaded
+            ? "Starter example — edit freely, then create the file in this workspace."
+            : "Always-applied workspace rules. Edit here or open the file on disk."
+        }
+      >
+        {!cwd ? (
+          <div className="rounded-lg border border-hairline-soft bg-panel px-5 py-6">
+            <p className="text-sm text-fg-muted">Open a workspace to edit project rules.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <ReadOnlyPill>{agents?.exists ? "On disk" : "Example (not saved)"}</ReadOnlyPill>
+              <button
+                className="flex h-8 items-center gap-1.5 rounded-md border border-hairline bg-surface px-2.5 text-xs text-fg transition-colors hover:bg-hover disabled:opacity-40"
+                disabled={!agents || loading || saving}
+                onClick={useExample}
+                type="button"
+              >
+                Reset to example
+              </button>
+              {agents?.exists ? (
+                <button
+                  className="flex h-8 items-center gap-1.5 rounded-md border border-hairline bg-surface px-2.5 text-xs text-fg transition-colors hover:bg-hover disabled:opacity-40"
+                  disabled={loading || saving}
+                  onClick={() =>
+                    void openRule({
+                      path: agents.path,
+                      relPath: "AGENTS.md",
+                      source: "agents-md",
+                      mode: "always",
+                      size: new TextEncoder().encode(agents.content).byteLength,
+                    })
+                  }
+                  type="button"
+                >
+                  <IconFileText size={14} stroke={1.7} />
+                  Open file
+                </button>
+              ) : null}
+            </div>
+            <textarea
+              className="scroll-thin min-h-[280px] w-full resize-y rounded-lg border border-hairline-soft bg-panel px-4 py-3 font-mono text-sm text-fg leading-6 outline-none placeholder:text-fg-faint focus:border-focus-ring disabled:opacity-60"
+              disabled={loading || saving}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setMessage(undefined);
+              }}
+              placeholder="Project rules…"
+              spellCheck={false}
+              value={loading ? "" : draft}
+            />
+          </div>
+        )}
+      </SettingsSection>
 
       <SettingsSection title="Detected rule files">
         {!cwd ? (
           <div className="rounded-lg border border-hairline-soft bg-panel px-5 py-6">
             <p className="text-sm text-fg-muted">Open a workspace to discover project rules.</p>
           </div>
-        ) : loading && rules.length === 0 ? (
+        ) : loading && rules.length === 0 && !agents ? (
           <div className="rounded-lg border border-hairline-soft bg-panel px-5 py-6 text-sm text-fg-muted">
             <ShinyText>Scanning workspace…</ShinyText>
           </div>
         ) : rules.length === 0 ? (
           <div className="flex flex-col items-start gap-2 rounded-lg border border-hairline-soft bg-panel px-5 py-6">
             <p className="text-sm text-fg-muted">
-              No rule files found. Add <span className="font-mono text-xs">AGENTS.md</span> at the
-              workspace root, or create{" "}
+              No rule files on disk yet. Save the example above to create{" "}
+              <span className="font-mono text-xs">AGENTS.md</span>, or add{" "}
               <span className="font-mono text-xs">.cursor/rules/*.mdc</span> with{" "}
               <span className="font-mono text-xs">alwaysApply: true</span>.
             </p>
@@ -3255,10 +3403,21 @@ function SettingsPageHeader({
   );
 }
 
-function SettingsSection({ children, title }: { children: ReactNode; title: string }) {
+function SettingsSection({
+  children,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  description?: string;
+  title: string;
+}) {
   return (
     <section className="flex flex-col gap-4">
-      <h3 className="text-sm font-normal text-fg">{title}</h3>
+      <div className="min-w-0">
+        <h3 className="text-sm font-normal text-fg">{title}</h3>
+        {description ? <p className="mt-1 text-xs text-fg-faint">{description}</p> : null}
+      </div>
       {children}
     </section>
   );
@@ -3388,6 +3547,7 @@ function ProviderDetail({
   onEditProvider,
   onKeyChange,
   onOpenProviderConnection,
+  onSetAllModels,
   onToggleModel,
 }: {
   detail: ModelProviderDetail;
@@ -3402,6 +3562,7 @@ function ProviderDetail({
   onEditProvider(providerId: string): void;
   onKeyChange(apiKey: string): void;
   onOpenProviderConnection(): void;
+  onSetAllModels(enabled: boolean): void;
   onToggleModel(model: ProviderModelConfig, enabled: boolean): void;
 }) {
   const [modelsOpen, setModelsOpen] = useState(false);
@@ -3420,6 +3581,8 @@ function ProviderDetail({
     [models, modelFilter, modelQuery],
   );
   const modelGroups = useMemo(() => groupProviderModels(filteredModels), [filteredModels]);
+  const allEnabled = enabledCount === models.length && models.length > 0;
+  const noneEnabled = enabledCount === 0;
 
   return (
     <m.section
@@ -3427,7 +3590,7 @@ function ProviderDetail({
       className="flex min-w-0 flex-col"
       exit={{ opacity: 0, y: 8 }}
       initial={{ opacity: 0, y: 8 }}
-      transition={{ duration: 0.16, ease: "easeOut" }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
     >
       <div className="pb-4">
         <div className="flex items-start justify-between gap-4">
@@ -3488,6 +3651,22 @@ function ProviderDetail({
               ) : (
                 <ReadOnlyPill>{modelResultLabel(filteredModels.length)}</ReadOnlyPill>
               )}
+              <button
+                className="flex h-8 items-center rounded-md bg-chip-faint px-3 text-sm text-fg-subtle transition-colors hover:bg-hover hover:text-fg disabled:opacity-40"
+                disabled={busy || allEnabled || models.length === 0}
+                onClick={() => onSetAllModels(true)}
+                type="button"
+              >
+                Enable all
+              </button>
+              <button
+                className="flex h-8 items-center rounded-md bg-chip-faint px-3 text-sm text-fg-subtle transition-colors hover:bg-hover hover:text-fg disabled:opacity-40"
+                disabled={busy || noneEnabled}
+                onClick={() => onSetAllModels(false)}
+                type="button"
+              >
+                Disable all
+              </button>
               {detail.source === "custom" ? (
                 <button
                   className="flex h-8 items-center gap-1.5 rounded-md bg-chip-faint px-3 text-sm text-fg-subtle transition-colors hover:bg-hover hover:text-fg"

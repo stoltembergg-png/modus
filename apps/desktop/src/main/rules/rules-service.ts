@@ -1,6 +1,11 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import type { RuleFileInfo, RuleMode, RuleSource } from "../../shared/contracts";
+import type {
+  RuleFileInfo,
+  RuleMode,
+  RuleSource,
+  WorkspaceAgentsState,
+} from "../../shared/contracts";
 
 /**
  * Project rules (M0) — Cursor-compatible automatic instructions.
@@ -16,6 +21,28 @@ import type { RuleFileInfo, RuleMode, RuleSource } from "../../shared/contracts"
  * Always-apply rules are injected into the session system prompt at session
  * assembly (create + resume), so they never bloat per-turn context.
  */
+
+/** Starter AGENTS.md shown in Settings so every workspace can edit rules immediately. */
+export const EXAMPLE_AGENTS_MD = `# Project rules
+
+## Goal
+Help ship clear, reviewable changes for this repository.
+
+## Style
+- Prefer small, focused diffs over broad rewrites.
+- Match existing naming, file layout, and comment tone.
+- Keep explanations short; put detail in code or tests when needed.
+
+## Do
+- Run the project's usual checks before claiming work is done.
+- Ask before destructive git or deploy actions.
+- Leave TODOs only when the follow-up is concrete.
+
+## Don't
+- Commit secrets, credentials, or generated noise.
+- Refactor unrelated files while fixing a bug.
+- Invent APIs or config keys that are not in the repo.
+`;
 
 /** Per-file cap so one runaway rule can't eat the context window. */
 const MAX_RULE_BYTES = 24 * 1024;
@@ -142,6 +169,34 @@ export function listRuleFiles(cwd: string): RuleFileInfo[] {
   }
 
   return rules;
+}
+
+/** Workspace-root AGENTS.md for the Settings editor (seeds an example when missing). */
+export function getWorkspaceAgents(cwd: string): WorkspaceAgentsState {
+  const path = join(cwd, "AGENTS.md");
+  const exists = safeStatSize(path) !== undefined;
+  let content = "";
+  if (exists) {
+    try {
+      content = readFileSync(path, "utf8");
+    } catch {
+      content = "";
+    }
+  }
+  return {
+    path,
+    relPath: "AGENTS.md",
+    exists,
+    content,
+    example: EXAMPLE_AGENTS_MD,
+  };
+}
+
+/** Create or overwrite workspace AGENTS.md from Settings. */
+export function saveWorkspaceAgents(cwd: string, content: string): WorkspaceAgentsState {
+  const path = join(cwd, "AGENTS.md");
+  writeFileSync(path, content, "utf8");
+  return getWorkspaceAgents(cwd);
 }
 
 /**

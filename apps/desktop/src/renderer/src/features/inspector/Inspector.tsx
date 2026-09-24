@@ -76,7 +76,7 @@ type InspectorProps = {
 const INSPECTOR_MAX_WIDTH = 1040;
 const INSPECTOR_BROWSER_PREFERRED_WIDTH = 760;
 const INSPECTOR_COLLAPSED_WIDTH = 0;
-const INSPECTOR_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] } as const;
+const INSPECTOR_TRANSITION = { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } as const;
 const INSPECTOR_TAB_PANEL_CLASS = "inspector-tab-panel min-h-0 flex-1 outline-none";
 const loadBrowserPanel = () => import("../browser/BrowserPanel");
 const loadTerminalPanel = () => import("../terminal/TerminalPanel");

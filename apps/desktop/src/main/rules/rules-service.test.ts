@@ -2,7 +2,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { listRuleFiles, parseMdcFrontmatter, resolveAlwaysRulesPrompt } from "./rules-service";
+import {
+  EXAMPLE_AGENTS_MD,
+  getWorkspaceAgents,
+  listRuleFiles,
+  parseMdcFrontmatter,
+  resolveAlwaysRulesPrompt,
+  saveWorkspaceAgents,
+} from "./rules-service";
 
 describe("parseMdcFrontmatter", () => {
   it("parses scalar keys and returns the body", () => {
@@ -80,5 +87,33 @@ describe("resolveAlwaysRulesPrompt", () => {
       "---\ndescription: Manual only\n---\nBody.",
     );
     expect(resolveAlwaysRulesPrompt(root)).toBeUndefined();
+  });
+});
+
+describe("workspace AGENTS.md editor", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "modus-agents-"));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("seeds an example when AGENTS.md is missing", () => {
+    const state = getWorkspaceAgents(root);
+    expect(state.exists).toBe(false);
+    expect(state.content).toBe("");
+    expect(state.example).toBe(EXAMPLE_AGENTS_MD);
+    expect(state.example).toContain("# Project rules");
+  });
+
+  it("saves and reloads AGENTS.md content", () => {
+    const saved = saveWorkspaceAgents(root, EXAMPLE_AGENTS_MD);
+    expect(saved.exists).toBe(true);
+    expect(saved.content).toBe(EXAMPLE_AGENTS_MD);
+    expect(getWorkspaceAgents(root).content).toBe(EXAMPLE_AGENTS_MD);
+    expect(listRuleFiles(root).some((rule) => rule.relPath === "AGENTS.md")).toBe(true);
   });
 });

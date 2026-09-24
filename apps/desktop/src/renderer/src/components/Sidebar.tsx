@@ -36,7 +36,7 @@ import { ScrollReveal } from "./ui/ScrollReveal";
 
 export const SIDEBAR_MIN_WIDTH = 240;
 const SIDEBAR_MAX_WIDTH = 480;
-export const SIDEBAR_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] } as const;
+export const SIDEBAR_TRANSITION = { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } as const;
 
 /**
  * Sidebar density contract — one icon rail for nav / folder / session dots.
@@ -55,7 +55,7 @@ const SB_ICON = ICON.lg;
 const SB_STROKE = ICON_STROKE.lg;
 const SB_ACTION = ICON.sm;
 const SB_ACTION_STROKE = ICON_STROKE.sm;
-const LIST_MOTION = { duration: 0.14, ease: "easeOut" } as const;
+const LIST_MOTION = { duration: 0.22, ease: "easeOut" } as const;
 
 type SidebarProps = {
   workspaces: WorkspaceInfo[];
@@ -675,7 +675,7 @@ function ProjectRow({
             menuOpen && "bg-hover text-fg",
           )}
           layout
-          transition={{ duration: 0.14, ease: "easeOut" }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
         >
           <button
             aria-expanded={expanded}
@@ -691,7 +691,7 @@ function ProjectRow({
             <m.span
               animate={{ rotate: expanded ? 90 : 0 }}
               className="flex size-3 shrink-0 items-center justify-center text-fg-faint opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             >
               <IconChevronRight size={ICON.xs} stroke={ICON_STROKE.xs} />
             </m.span>
@@ -812,7 +812,7 @@ function NavRow({
         <m.span
           className="absolute inset-0 rounded-md bg-active"
           layoutId="sidebar-active"
-          transition={{ duration: 0.12, ease: "easeOut" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
         />
       ) : null}
       <span className={cn(SB_RAIL, "relative text-current")}>{icon}</span>
@@ -1007,7 +1007,7 @@ function SectionHeader({
         <m.span
           animate={{ rotate: expanded ? 90 : 0 }}
           className="flex size-3 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-          transition={{ duration: 0.16, ease: "easeOut" }}
+          transition={{ duration: 0.24, ease: "easeOut" }}
         >
           <IconChevronRight size={ICON.xs} stroke={ICON_STROKE.xs} />
         </m.span>

@@ -63,7 +63,7 @@ type FlatNode = { entry: FileEntry; depth: number };
 const DEFAULT_TREE_WIDTH = 240;
 const MIN_TREE_WIDTH = 180;
 const MAX_TREE_WIDTH = 480;
-const TREE_TRANSITION = { duration: 0.2, ease: [0.22, 1, 0.36, 1] } as const;
+const TREE_TRANSITION = { duration: 0.32, ease: [0.25, 0.1, 0.25, 1] } as const;
 
 function isMarkdown(path: string): boolean {
   return /\.(md|markdown|mdx)$/i.test(path);
