@@ -88,7 +88,10 @@ export function ThoughtLine({
 }: ThoughtLineProps) {
   const reduce = useReducedMotion();
   const [autoSettled, setAutoSettled] = useState(false);
-  const [open, setOpen] = useState(true);
+  // Settled + collapseOnSettle must start closed. Opening true then collapsing
+  // on mount expands every ThoughtLine in a remounted chat and keeps the
+  // viewport pinned near the top of the session.
+  const [open, setOpen] = useState(() => !(collapseOnSettle && !working));
   const isWorking = working && !autoSettled;
   const doneText = doneLabel || (showTimer ? "Thought for" : "Done thinking");
   const hasTrace = steps.length > 0;
