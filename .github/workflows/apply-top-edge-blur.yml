@@ -1,0 +1,46 @@
+name: apply-top-edge-blur
+on:
+  push:
+    branches: [cursor/top-edge-blur-fix-5588]
+    paths:
+      - .github/workflows/apply-top-edge-blur.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: contains(github.event.head_commit.message, '[apply-blur]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/top-edge-blur-fix-5588
+      - name: Apply remaining blur fix files, commit, self-delete
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, pathlib
+          patch = base64.b64decode("""ZGlmZiAtLWdpdCBhL2FwcHMvZGVza3RvcC9zcmMvcmVuZGVyZXIvc3JjL2ZlYXR1cmVzL2FnZW50L0NoYXRQYW5lLnRzeCBiL2FwcHMvZGVza3RvcC9zcmMvcmVuZGVyZXIvc3JjL2ZlYXR1cmVzL2FnZW50L0NoYXRQYW5lLnRzeAppbmRleCA0ZTYwNTkwLi41ZjA4MDQ1IDEwMDY0NAotLS0gYS9hcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy9mZWF0dXJlcy9hZ2VudC9DaGF0UGFuZS50c3gKKysrIGIvYXBwcy9kZXNrdG9wL3NyYy9yZW5kZXJlci9zcmMvZmVhdHVyZXMvYWdlbnQvQ2hhdFBhbmUudHN4CkBAIC0xMTgwLDExICsxMTgwLDEzIEBAIGZ1bmN0aW9uIENoYXRWaWV3cG9ydCh7CiB9KSB7CiAgIHJldHVybiAoCiAgICAgPG0uZGl2Ci0gICAgICBjbGFzc05hbWU9InNjcm9sbC10aGluIG1pbi1oLTAgbWluLXctMCBtYXgtdy1mdWxsIGZsZXgtMSBvdmVyZmxvdy15LWF1dG8gb3ZlcmZsb3cteC1jbGlwIG92ZXJzY3JvbGwtY29udGFpbiBbc2Nyb2xsYmFyLWd1dHRlcjpzdGFibGVfYm90aC1lZGdlc10iCisgICAgICBjbGFzc05hbWU9InNjcm9sbC10aGluIHJlbGF0aXZlIG1pbi1oLTAgbWluLXctMCBtYXgtdy1mdWxsIGZsZXgtMSBvdmVyZmxvdy15LWF1dG8gb3ZlcmZsb3cteC1jbGlwIG92ZXJzY3JvbGwtY29udGFpbiBbc2Nyb2xsYmFyLWd1dHRlcjpzdGFibGVfYm90aC1lZGdlc10iCiAgICAgICBsYXlvdXRTY3JvbGwKICAgICAgIG9uU2Nyb2xsPXtvblNjcm9sbH0KICAgICAgIHJlZj17c2Nyb2xsUmVmfQogICAgID4KKyAgICAgIHsvKiBWaWV3cG9ydCBjaHJvbWU6IHN0cm9uZ2VyIGJsdXIgYXQgdGhlIHRvcCBlZGdlLCBncmFkaWVudCB0byBzaGFycCBiZWxvdy4gKi99CisgICAgICA8ZGl2IGFyaWEtaGlkZGVuIGNsYXNzTmFtZT0iY2hhdC1zY3JvbGwtdG9wLWJsdXIiIC8+CiAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBtaW4taC1mdWxsIG1pbi13LTAgdy1mdWxsIG1heC13LWZ1bGwgZmxleC1jb2wiIHJlZj17Y29udGVudFJlZn0+CiAgICAgICAgIHtjaGlsZHJlbn0KICAgICAgIDwvZGl2PgpkaWZmIC0tZ2l0IGEvYXBwcy9kZXNrdG9wL3NyYy9yZW5kZXJlci9zcmMvZmVhdHVyZXMvYWdlbnQvVGltZWxpbmUudHN4IGIvYXBwcy9kZXNrdG9wL3NyYy9yZW5kZXJlci9zcmMvZmVhdHVyZXMvYWdlbnQvVGltZWxpbmUudHN4CmluZGV4IDgzYmEzY2MuLjc5YjFjMDUgMTAwNjQ0Ci0tLSBhL2FwcHMvZGVza3RvcC9zcmMvcmVuZGVyZXIvc3JjL2ZlYXR1cmVzL2FnZW50L1RpbWVsaW5lLnRzeAorKysgYi9hcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy9mZWF0dXJlcy9hZ2VudC9UaW1lbGluZS50c3gKQEAgLTEzMDYsMTMgKzEzMDYsNyBAQCBmdW5jdGlvbiBUaW1lbGluZVJldmVhbCh7CiAgICAgcmV0dXJuIGNoaWxkcmVuOwogICB9CiAgIHJldHVybiAoCi0gICAgPFNjcm9sbFJldmVhbAotICAgICAgYmx1clN0cmVuZ3RoPXs1fQotICAgICAgb2Zmc2V0WT17MTZ9Ci0gICAgICBvbmNlCi0gICAgICBzY3JvbGxDb250YWluZXJSZWY9e3Njcm9sbENvbnRhaW5lclJlZn0KLSAgICAgIHRvcEVkZ2VCbHVyPXszfQotICAgID4KKyAgICA8U2Nyb2xsUmV2ZWFsIGJsdXJTdHJlbmd0aD17NX0gb2Zmc2V0WT17MTZ9IG9uY2Ugc2Nyb2xsQ29udGFpbmVyUmVmPXtzY3JvbGxDb250YWluZXJSZWZ9PgogICAgICAge2NoaWxkcmVufQogICAgIDwvU2Nyb2xsUmV2ZWFsPgogICApOwpkaWZmIC0tZ2l0IGEvYXBwcy9kZXNrdG9wL3NyYy9yZW5kZXJlci9zcmMvc3R5bGVzL2FwcC5jc3MgYi9hcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy9zdHlsZXMvYXBwLmNzcwppbmRleCA3ODkzNTFmLi5mNjk2ZDlkIDEwMDY0NAotLS0gYS9hcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy9zdHlsZXMvYXBwLmNzcworKysgYi9hcHBzL2Rlc2t0b3Avc3JjL3JlbmRlcmVyL3NyYy9zdHlsZXMvYXBwLmNzcwpAQCAtNjc4LDYgKzY3OCwzOSBAQCBib2R5IHsKICAgICAtLXNjcm9sbC1mYWRlLWJvdHRvbTogMjRweDsKICAgfQogCisgIC8qKgorICAgKiBDb252ZXJzYXRpb24gdG9wLWVkZ2UgYmx1ciDigJQgc3RpY2t5IHZpZXdwb3J0IGNocm9tZSwgbm90IHBlci1tZXNzYWdlIGZpbHRlci4KKyAgICogU3Ryb25nZXIgbmVhciB0aGUgdG9wIGJvcmRlcjsgbWFzayBmYWRlcyBibHVyIOKGkiBzaGFycCBkb3duIHRoZSBiYW5kLgorICAgKi8KKyAgLmNoYXQtc2Nyb2xsLXRvcC1ibHVyIHsKKyAgICBwb3NpdGlvbjogc3RpY2t5OworICAgIHRvcDogMDsKKyAgICB6LWluZGV4OiA1OworICAgIGhlaWdodDogNDhweDsKKyAgICBtYXJnaW4tYm90dG9tOiAtNDhweDsKKyAgICBwb2ludGVyLWV2ZW50czogbm9uZTsKKyAgICBiYWNrZHJvcC1maWx0ZXI6IGJsdXIoOHB4KTsKKyAgICAtd2Via2l0LWJhY2tkcm9wLWZpbHRlcjogYmx1cig4cHgpOworICAgIGJhY2tncm91bmQ6IGxpbmVhci1ncmFkaWVudCgKKyAgICAgIHRvIGJvdHRvbSwKKyAgICAgIGNvbG9yLW1peChpbiBva2xhYiwgdmFyKC0tY29sb3ItY2FudmFzKSA0MiUsIHRyYW5zcGFyZW50KSAwJSwKKyAgICAgIHRyYW5zcGFyZW50IDEwMCUKKyAgICApOworICAgIC13ZWJraXQtbWFzay1pbWFnZTogbGluZWFyLWdyYWRpZW50KHRvIGJvdHRvbSwgIzAwMCAwJSwgIzAwMCAxOCUsIHRyYW5zcGFyZW50IDEwMCUpOworICAgIG1hc2staW1hZ2U6IGxpbmVhci1ncmFkaWVudCh0byBib3R0b20sICMwMDAgMCUsICMwMDAgMTglLCB0cmFuc3BhcmVudCAxMDAlKTsKKyAgfQorICBAbWVkaWEgKHByZWZlcnMtcmVkdWNlZC1tb3Rpb246IHJlZHVjZSkgeworICAgIC5jaGF0LXNjcm9sbC10b3AtYmx1ciB7CisgICAgICBiYWNrZHJvcC1maWx0ZXI6IG5vbmU7CisgICAgICAtd2Via2l0LWJhY2tkcm9wLWZpbHRlcjogbm9uZTsKKyAgICAgIGJhY2tncm91bmQ6IGxpbmVhci1ncmFkaWVudCgKKyAgICAgICAgdG8gYm90dG9tLAorICAgICAgICBjb2xvci1taXgoaW4gb2tsYWIsIHZhcigtLWNvbG9yLWNhbnZhcykgMjglLCB0cmFuc3BhcmVudCkgMCUsCisgICAgICAgIHRyYW5zcGFyZW50IDEwMCUKKyAgICAgICk7CisgICAgfQorICB9CisKICAgLyogUmVhY3QgQml0cyBUZXh0VHlwZSBjYXJldCAqLwogICAudGV4dC10eXBlIHsKICAgICBkaXNwbGF5OiBpbmxpbmU7Cg==""").decode()
+          pathlib.Path('/tmp/top-edge-blur.patch').write_text(patch)
+          PY
+          git apply /tmp/top-edge-blur.patch
+          grep -q 'chat-scroll-top-blur' apps/desktop/src/renderer/src/styles/app.css
+          grep -q 'chat-scroll-top-blur' apps/desktop/src/renderer/src/features/agent/ChatPane.tsx
+          ! grep -q 'topEdgeBlur' apps/desktop/src/renderer/src/features/agent/Timeline.tsx
+          git config user.name "cursor[bot]"
+          git config user.email "cursor[bot]@users.noreply.github.com"
+          git add \
+            apps/desktop/src/renderer/src/features/agent/Timeline.tsx \
+            apps/desktop/src/renderer/src/features/agent/ChatPane.tsx \
+            apps/desktop/src/renderer/src/styles/app.css
+          git commit -m "$(cat <<'EOF'
+          fix(ui): top-edge gradient blur instead of full-chat blur
+
+          Per-block filter blur smeared tall messages after PR #25. Use sticky
+          viewport chrome with backdrop-filter + mask so blur is strongest at the
+          top edge and fades to sharp below.
+          EOF
+          )"
+          rm -f .github/workflows/apply-top-edge-blur.yml
+          git add -A .github/workflows/
+          git commit -m "chore: remove temporary apply-top-edge-blur staging" || true
+          git push origin HEAD:cursor/top-edge-blur-fix-5588
