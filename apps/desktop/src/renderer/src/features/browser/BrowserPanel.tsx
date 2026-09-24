@@ -396,7 +396,7 @@ export function BrowserPanel({ active, workspaceId }: BrowserPanelProps) {
                 event.currentTarget.blur();
               }
             }}
-            placeholder="输入 URL"
+            placeholder="Enter URL"
             ref={addressInputRef}
             spellCheck={false}
             value={address}
@@ -465,12 +465,12 @@ function BrowserTabRail({
             type="button"
           >
             <IconWorld className="toolbar-icon shrink-0" size={18} stroke={1.7} />
-            <span className="truncate">新页面</span>
+            <span className="truncate">New tab</span>
           </button>
         ) : (
           tabs.map((tab) => {
             const active = tab.id === activeTabId;
-            const label = tab.title?.trim() || "新页面";
+            const label = tab.title?.trim() || "New tab";
             return (
               <div
                 className={cn(
@@ -489,7 +489,7 @@ function BrowserTabRail({
                   <span className="truncate">{label}</span>
                 </button>
                 <button
-                  aria-label="关闭页面"
+                  aria-label="Close tab"
                   className="flex size-5 shrink-0 items-center justify-center rounded-full bg-fg text-canvas opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-100 focus-visible:opacity-100"
                   onClick={(event) => {
                     event.stopPropagation();
@@ -504,7 +504,7 @@ function BrowserTabRail({
           })
         )}
       </div>
-      <BrowserIconButton label="新页面" onClick={onCreateTab}>
+      <BrowserIconButton label="New tab" onClick={onCreateTab}>
         <IconPlus size={18} stroke={1.7} />
       </BrowserIconButton>
     </div>
@@ -613,8 +613,8 @@ function BrowserViewport({
       <div className="absolute inset-x-1 top-0 bottom-1" ref={hostRef} />
       {!tabId ? (
         <EmptyState
-          description="输入 URL 以打开页面"
-          hint="开始浏览"
+          description="Enter a URL to open a page"
+          hint="Start browsing"
           icon={<IconWorld size={36} stroke={1.4} />}
         />
       ) : null}
