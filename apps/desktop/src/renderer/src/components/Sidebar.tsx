@@ -122,6 +122,7 @@ export function Sidebar({
   const latestWidthRef = useRef(width);
   const reduceMotion = useReducedMotion();
   const panelWidth = useMotionValue(width);
+  const isMac = window.modus?.app.platform === "darwin";
 
   useEffect(() => {
     if (!dragStartRef.current) panelWidth.set(width);
@@ -178,7 +179,9 @@ export function Sidebar({
         style={{ width: panelWidth }}
         transition={{ layout: SIDEBAR_TRANSITION }}
       >
-        <div className="px-2 pt-3 pb-1">
+        {/* Clears native traffic lights; conversation layout has no separate MenuBar. */}
+        {isMac ? <div aria-hidden className="app-drag h-9 shrink-0" /> : null}
+        <div className="app-no-drag px-2 pt-3 pb-1">
           <NavRow
             disabled={!canCreateSession}
             icon={<IconEdit size={SB_ICON} stroke={SB_STROKE} />}
