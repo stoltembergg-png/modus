@@ -18,6 +18,21 @@ jobs:
         run: |
           set -euo pipefail
           rm -f .github/tmp-sfm/part02-test.b64
+          # Fix single-char MCP transcription corruptions in three parts
+          python3 - <<'PY'
+          from pathlib import Path
+          fixes = [
+            ("part04.b64", "/bpZLam1dR4bt9UpDUb43", "/hpZLam1dR4bt9UpDUb43"),
+            ("part05.b64", "vueHCxNNezvdjEwPI3BP", "VueHCxNNezvdjEwPI3BP"),
+            ("part11.b64", "gemzl3wrj1uyqNKb5Wnf", "kemzl3wrj1uyqNKb5Wnf"),
+          ]
+          for name, wrong, right in fixes:
+              path = Path(".github/tmp-sfm") / name
+              text = path.read_text()
+              assert text.count(wrong) == 1, (name, text.count(wrong))
+              path.write_text(text.replace(wrong, right, 1))
+              print("fixed", name)
+          PY
           cat .github/tmp-sfm/part[0-9][0-9].b64 | tr -d '\n' > /tmp/p.b64
           python3 - <<'PY'
           import base64, gzip, io, zipfile, pathlib
