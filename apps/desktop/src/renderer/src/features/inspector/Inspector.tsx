@@ -22,6 +22,7 @@ import type {
   WorkspaceInfo,
 } from "../../../../shared/contracts";
 import { ChromeMoreMenu } from "../../components/ui/ChromeMoreMenu";
+import { ContentTransition } from "../../components/ui/ContentTransition";
 import { ModusLoadingFallback } from "../../components/ui/ModusLoadingMark";
 import { PanelHeader } from "../../components/ui/Panel";
 import { TOOLBAR_ICON, ToolbarButton } from "../../components/ui/ToolbarButton";
@@ -329,41 +330,55 @@ export function Inspector({
                 </div>
 
                 <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="changes">
-                  <DiffPanel cwd={cwd} sessionId={sessionId} workspaceId={activeWorkspace?.id} />
+                  <ContentTransition
+                    className="flex min-h-0 flex-1 flex-col"
+                    transitionKey="changes"
+                  >
+                    <DiffPanel cwd={cwd} sessionId={sessionId} workspaceId={activeWorkspace?.id} />
+                  </ContentTransition>
                 </Tabs.Panel>
                 <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="plan">
-                  <PlanPanel plan={plan} />
+                  <ContentTransition className="flex min-h-0 flex-1 flex-col" transitionKey="plan">
+                    <PlanPanel plan={plan} />
+                  </ContentTransition>
                 </Tabs.Panel>
                 <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="files">
-                  <FilesPanel
-                    cwd={cwd}
-                    onAddToChat={onAddToChat}
-                    onRevealConsumed={onRevealConsumed}
-                    revealPath={revealPath}
-                  />
+                  <ContentTransition className="flex min-h-0 flex-1 flex-col" transitionKey="files">
+                    <FilesPanel
+                      cwd={cwd}
+                      onAddToChat={onAddToChat}
+                      onRevealConsumed={onRevealConsumed}
+                      revealPath={revealPath}
+                    />
+                  </ContentTransition>
                 </Tabs.Panel>
                 <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} value="subagents">
-                  <SubagentsPanel
-                    contextUsageBySession={contextUsageBySession}
-                    defaultModel={defaultModel}
-                    hub={hub}
-                    models={models}
-                    onModelChange={onModelChange}
-                    onModelConfigChange={onModelConfigChange}
-                    onOpenReview={onOpenReview}
-                    onOpenPlan={(nextPlan) => {
-                      onPlanUpdated(nextPlan);
-                      onTabChange?.("plan");
-                    }}
-                    onOpenSubagent={onOpenSubagent}
-                    onPlanUpdated={onPlanUpdated}
-                    onSelect={onSelectSubagent}
-                    onSessionsChanged={onSessionsChanged}
-                    parentSessionId={sessionId}
-                    selectedId={selectedSubagentId}
-                    sessions={sessions}
-                    workspace={activeWorkspace}
-                  />
+                  <ContentTransition
+                    className="flex min-h-0 flex-1 flex-col"
+                    transitionKey="subagents"
+                  >
+                    <SubagentsPanel
+                      contextUsageBySession={contextUsageBySession}
+                      defaultModel={defaultModel}
+                      hub={hub}
+                      models={models}
+                      onModelChange={onModelChange}
+                      onModelConfigChange={onModelConfigChange}
+                      onOpenReview={onOpenReview}
+                      onOpenPlan={(nextPlan) => {
+                        onPlanUpdated(nextPlan);
+                        onTabChange?.("plan");
+                      }}
+                      onOpenSubagent={onOpenSubagent}
+                      onPlanUpdated={onPlanUpdated}
+                      onSelect={onSelectSubagent}
+                      onSessionsChanged={onSessionsChanged}
+                      parentSessionId={sessionId}
+                      selectedId={selectedSubagentId}
+                      sessions={sessions}
+                      workspace={activeWorkspace}
+                    />
+                  </ContentTransition>
                 </Tabs.Panel>
                 <Tabs.Panel className={INSPECTOR_TAB_PANEL_CLASS} keepMounted value="browser">
                   {shouldRenderBrowser ? (
@@ -391,7 +406,9 @@ export function Inspector({
                   className={`${INSPECTOR_TAB_PANEL_CLASS} scroll-thin overflow-y-auto`}
                   value="security"
                 >
-                  <SecurityPanel securityState={securityState} />
+                  <ContentTransition transitionKey="security">
+                    <SecurityPanel securityState={securityState} />
+                  </ContentTransition>
                 </Tabs.Panel>
               </Tabs.Root>
             </m.div>

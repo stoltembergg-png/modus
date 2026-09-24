@@ -15,7 +15,7 @@ import {
   IconTrash,
   IconX,
 } from "@tabler/icons-react";
-import { m, useMotionValue, useReducedMotion } from "motion/react";
+import { AnimatePresence, m, useMotionValue, useReducedMotion } from "motion/react";
 import {
   type MouseEvent,
   type PointerEvent,
@@ -46,10 +46,14 @@ const SB_ROW =
   "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-sm font-normal transition-colors";
 /** Session titles — one step quieter/smaller than nav & project rows (Cursor density). */
 const SB_SESSION =
-  "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-xs font-normal transition-colors";
+  "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-[length:calc(var(--text-xs)*0.95)] font-normal transition-colors";
+/** Relative timestamps / meta on session rows — 5% under text-2xs to match titles. */
+const SB_SESSION_META =
+  "px-1 text-[length:calc(var(--text-2xs)*0.95)] font-normal text-fg-faint tabular-nums";
 const SB_NEST = "pl-5"; // 20px = one rail
 const SB_ICON = 18;
 const SB_STROKE = 1.5;
+const LIST_MOTION = { duration: 0.14, ease: "easeOut" } as const;
 
 type SidebarProps = {
   workspaces: WorkspaceInfo[];
@@ -210,38 +214,51 @@ export function Sidebar({
                 Open a repository…
               </NavRow>
             ) : (
-              workspaces.map((workspace) => (
-                <WorkspaceItem
-                  activityBySession={activityBySession}
-                  key={workspace.id}
-                  onArchiveSession={onArchiveSession}
-                  onDeleteSession={onDeleteSession}
-                  onListArchivedSessions={onListArchivedSessions}
-                  onNewSession={() => onNewWorkspaceSession(workspace)}
-                  onPinSession={onPinSession}
-                  onRestoreSession={onRestoreSession}
-                  onSelectSession={onSelectSession}
-                  activeSessionId={activeSessionId}
-                  sessions={sessionsByWorkspace.get(workspace.id) ?? []}
-                  workspace={workspace}
-                  renaming={renamingId === workspace.id}
-                  onStartRename={() => setRenamingId(workspace.id)}
-                  onCommitRename={(name) => {
-                    setRenamingId(null);
-                    const next = name.trim();
-                    if (next && next !== workspace.displayName) {
-                      onRenameProject(workspace.id, next);
-                    }
-                  }}
-                  onCancelRename={() => setRenamingId(null)}
-                  onPin={() => onPinProject(workspace.id, !workspace.pinned)}
-                  onReveal={() => onRevealProject(workspace.id)}
-                  onArchiveChats={() => onArchiveProjectChats(workspace.id)}
-                  onDeleteChats={() => onDeleteProjectChats(workspace.id)}
-                  onRemove={() => onRemoveProject(workspace.id)}
-                  scrollContainerRef={scrollContainerRef}
-                />
-              ))
+              <AnimatePresence initial={false}>
+                {workspaces.map((workspace) => (
+                  <m.div
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+                    initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                    key={workspace.id}
+                    layout
+                    transition={{
+                      duration: reduceMotion ? 0 : LIST_MOTION.duration,
+                      ease: LIST_MOTION.ease,
+                    }}
+                  >
+                    <WorkspaceItem
+                      activityBySession={activityBySession}
+                      onArchiveSession={onArchiveSession}
+                      onDeleteSession={onDeleteSession}
+                      onListArchivedSessions={onListArchivedSessions}
+                      onNewSession={() => onNewWorkspaceSession(workspace)}
+                      onPinSession={onPinSession}
+                      onRestoreSession={onRestoreSession}
+                      onSelectSession={onSelectSession}
+                      activeSessionId={activeSessionId}
+                      sessions={sessionsByWorkspace.get(workspace.id) ?? []}
+                      workspace={workspace}
+                      renaming={renamingId === workspace.id}
+                      onStartRename={() => setRenamingId(workspace.id)}
+                      onCommitRename={(name) => {
+                        setRenamingId(null);
+                        const next = name.trim();
+                        if (next && next !== workspace.displayName) {
+                          onRenameProject(workspace.id, next);
+                        }
+                      }}
+                      onCancelRename={() => setRenamingId(null)}
+                      onPin={() => onPinProject(workspace.id, !workspace.pinned)}
+                      onReveal={() => onRevealProject(workspace.id)}
+                      onArchiveChats={() => onArchiveProjectChats(workspace.id)}
+                      onDeleteChats={() => onDeleteProjectChats(workspace.id)}
+                      onRemove={() => onRemoveProject(workspace.id)}
+                      scrollContainerRef={scrollContainerRef}
+                    />
+                  </m.div>
+                ))}
+              </AnimatePresence>
             )}
 
             <div className="mt-1">
@@ -382,35 +399,37 @@ function WorkspaceItem({
         {workspace.displayName}
       </ProjectRow>
       <CollapsibleMotion open={expanded} preset="default">
-        {visibleSessions.map((session) => (
-          <ScrollReveal
-            key={session.id}
-            offsetY={8}
-            scrollContainerRef={scrollContainerRef}
-            blurStrength={3}
-          >
-            <SessionRow
-              activity={activityBySession[session.id]}
-              isActive={activeSessionId === session.id}
-              onArchive={(event) => {
-                event.stopPropagation();
-                onArchiveSession(session);
-              }}
-              onDelete={(event) => {
-                event.stopPropagation();
-                onDeleteSession(session);
-              }}
-              onPin={(event) => {
-                event.stopPropagation();
-                onPinSession(session, !session.pinnedAt);
-              }}
-              onSelect={() => onSelectSession(session)}
-              pinned={Boolean(session.pinnedAt)}
-              title={session.title}
-              updatedAt={session.updatedAt}
-            />
-          </ScrollReveal>
-        ))}
+        <AnimatePresence initial={false}>
+          {visibleSessions.map((session) => (
+            <ScrollReveal
+              key={session.id}
+              offsetY={8}
+              scrollContainerRef={scrollContainerRef}
+              blurStrength={3}
+            >
+              <SessionRow
+                activity={activityBySession[session.id]}
+                isActive={activeSessionId === session.id}
+                onArchive={(event) => {
+                  event.stopPropagation();
+                  onArchiveSession(session);
+                }}
+                onDelete={(event) => {
+                  event.stopPropagation();
+                  onDeleteSession(session);
+                }}
+                onPin={(event) => {
+                  event.stopPropagation();
+                  onPinSession(session, !session.pinnedAt);
+                }}
+                onSelect={() => onSelectSession(session)}
+                pinned={Boolean(session.pinnedAt)}
+                title={session.title}
+                updatedAt={session.updatedAt}
+              />
+            </ScrollReveal>
+          ))}
+        </AnimatePresence>
         {canToggleSessions ? (
           <button
             className={cn(SB_SESSION, "text-fg-faint hover:text-fg-subtle")}
@@ -428,19 +447,21 @@ function WorkspaceItem({
             ) : archivedSessions.length === 0 ? (
               <div className="px-2 py-1 text-2xs text-fg-faint">No archived chats</div>
             ) : (
-              archivedSessions.map((session) => (
-                <ArchivedSessionRow
-                  key={session.id}
-                  onOpen={() => onSelectSession(session)}
-                  onRestore={() => {
-                    setArchivedSessions((current) =>
-                      current?.filter((item) => item.id !== session.id),
-                    );
-                    onRestoreSession(session);
-                  }}
-                  session={session}
-                />
-              ))
+              <AnimatePresence initial={false}>
+                {archivedSessions.map((session) => (
+                  <ArchivedSessionRow
+                    key={session.id}
+                    onOpen={() => onSelectSession(session)}
+                    onRestore={() => {
+                      setArchivedSessions((current) =>
+                        current?.filter((item) => item.id !== session.id),
+                      );
+                      onRestoreSession(session);
+                    }}
+                    session={session}
+                  />
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </CollapsibleMotion>
@@ -493,7 +514,7 @@ function SessionRow({
         }
       }}
       onMouseLeave={() => setConfirmDelete(false)}
-      transition={{ duration: 0.14, ease: "easeOut" }}
+      transition={LIST_MOTION}
     >
       <span className={SB_RAIL}>
         <SessionStatusDot activity={activity} />
@@ -507,9 +528,7 @@ function SessionRow({
         <span className="min-w-0 flex-1 truncate-fade">{title}</span>
       </button>
       <span className="ml-0.5 hidden shrink-0 items-center group-hover:flex group-focus-within:flex">
-        <span className="px-1 text-2xs font-normal text-fg-faint tabular-nums">
-          {formatRelativeTime(updatedAt)}
-        </span>
+        <span className={SB_SESSION_META}>{formatRelativeTime(updatedAt)}</span>
         <IconButton label={pinned ? "Unpin chat" : "Pin chat"} onClick={onPin}>
           {pinned ? (
             <IconPinnedOff size={14} stroke={SB_STROKE} />
@@ -554,7 +573,14 @@ function ArchivedSessionRow({
   onRestore(): void;
 }) {
   return (
-    <div className={cn(SB_SESSION, "group text-fg-faint hover:bg-hover hover:text-fg-subtle")}>
+    <m.div
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(SB_SESSION, "group text-fg-faint hover:bg-hover hover:text-fg-subtle")}
+      exit={{ opacity: 0, y: -4 }}
+      initial={{ opacity: 0, y: 4 }}
+      layout
+      transition={LIST_MOTION}
+    >
       <span aria-hidden className={SB_RAIL} />
       <button
         className="min-w-0 flex-1 truncate-fade pr-1 text-left"
@@ -565,14 +591,14 @@ function ArchivedSessionRow({
         {session.title}
       </button>
       <span className="hidden shrink-0 items-center group-hover:flex group-focus-within:flex">
-        <span className="px-1 text-2xs tabular-nums">
+        <span className={SB_SESSION_META}>
           {formatRelativeTime(session.archivedAt ?? session.updatedAt)}
         </span>
         <IconButton label="Restore" onClick={onRestore}>
           <IconArchiveOff size={14} stroke={SB_STROKE} />
         </IconButton>
       </span>
-    </div>
+    </m.div>
   );
 }
 

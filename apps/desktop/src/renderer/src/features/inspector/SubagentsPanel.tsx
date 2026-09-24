@@ -1,4 +1,5 @@
 import { IconArrowLeft, IconGridDots, IconSearch } from "@tabler/icons-react";
+import { AnimatePresence, m } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AgentSessionInfo,
@@ -402,29 +403,38 @@ function SubagentList({
 }) {
   return (
     <div className="flex flex-col gap-2 p-3">
-      {sessions.map((session) => {
-        const stats = statsBySession[session.id];
-        return (
-          <button
-            className="flex min-h-[58px] w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-hover"
-            key={session.id}
-            onClick={() => onOpen(session)}
-            title={subagentTitle(session)}
-            type="button"
-          >
-            <SubagentProviderMark models={models} session={session} />
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <div className="truncate font-medium text-fg">{subagentTitle(session)}</div>
-                {stats && stats.fileCount > 0 ? (
-                  <LineDelta added={stats.added} removed={stats.removed} />
-                ) : null}
+      <AnimatePresence initial={false}>
+        {sessions.map((session) => {
+          const stats = statsBySession[session.id];
+          return (
+            <m.button
+              animate={{ opacity: 1, y: 0 }}
+              className="flex min-h-[58px] w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-hover"
+              exit={{ opacity: 0, y: -4 }}
+              initial={{ opacity: 0, y: 4 }}
+              key={session.id}
+              layout
+              onClick={() => onOpen(session)}
+              title={subagentTitle(session)}
+              transition={{ duration: 0.14, ease: "easeOut" }}
+              type="button"
+            >
+              <SubagentProviderMark models={models} session={session} />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="truncate font-medium text-fg">{subagentTitle(session)}</div>
+                  {stats && stats.fileCount > 0 ? (
+                    <LineDelta added={stats.added} removed={stats.removed} />
+                  ) : null}
+                </div>
+                <div className="truncate text-fg-faint text-xs">
+                  {subagentMeta(session, models)}
+                </div>
               </div>
-              <div className="truncate text-fg-faint text-xs">{subagentMeta(session, models)}</div>
-            </div>
-          </button>
-        );
-      })}
+            </m.button>
+          );
+        })}
+      </AnimatePresence>
     </div>
   );
 }
