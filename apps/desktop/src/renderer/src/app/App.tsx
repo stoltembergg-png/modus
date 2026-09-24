@@ -1375,7 +1375,9 @@ function WorkspaceMenu({
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate">No folder</span>
-                <span className="truncate text-2xs text-fg-faint">Goes to Chats in the sidebar</span>
+                <span className="truncate text-2xs text-fg-faint">
+                  Goes to Chats in the sidebar
+                </span>
               </span>
             </Menu.Item>
             {workspaces.length === 0 ? (

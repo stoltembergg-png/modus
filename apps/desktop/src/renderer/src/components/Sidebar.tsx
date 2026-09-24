@@ -118,7 +118,10 @@ export function Sidebar({
 }: SidebarProps) {
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const projectIds = useMemo(() => new Set(workspaces.map((workspace) => workspace.id)), [workspaces]);
+  const projectIds = useMemo(
+    () => new Set(workspaces.map((workspace) => workspace.id)),
+    [workspaces],
+  );
   const sessionsByWorkspace = groupSessionsByWorkspace(agentSessions);
   const inboxSessions = useMemo(
     () =>

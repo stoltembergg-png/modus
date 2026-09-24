@@ -740,12 +740,7 @@ body {
     left: 0;
     width: 2px;
     border-radius: 1px;
-    background: linear-gradient(
-      to bottom,
-      var(--bm-line) 0%,
-      var(--bm-line) 55%,
-      transparent 100%
-    );
+    background: linear-gradient(to bottom, var(--bm-line) 0%, var(--bm-line) 55%, transparent 100%);
   }
   .branched-menu__marker {
     position: absolute;

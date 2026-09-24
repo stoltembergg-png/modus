@@ -5,13 +5,7 @@
  * Tree lines draw with SVG stroke animation when a section opens.
  * No Hugeicons dependency — callers pass ReactNode icons (Tabler, etc.).
  */
-import {
-  type CSSProperties,
-  type ReactNode,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
 
 export type BranchedMenuChild = {
@@ -81,9 +75,7 @@ export function BranchedMenu({
   const heads = useRef<Array<HTMLButtonElement | null>>([]);
   const markerRef = useRef<HTMLSpanElement | null>(null);
 
-  const activeSection = items.findIndex((it) =>
-    it.children?.some((kid) => kid.value === active),
-  );
+  const activeSection = items.findIndex((it) => it.children?.some((kid) => kid.value === active));
   const markerShown = activeSection >= 0 && open.has(activeSection);
 
   useLayoutEffect(() => {
@@ -111,7 +103,7 @@ export function BranchedMenu({
     });
     if (navRef.current) ro.observe(navRef.current);
     return () => ro.disconnect();
-  }, [activeSection, markerShown, items, fontSize, rowHeight]);
+  }, [activeSection, markerShown]);
 
   const r = Math.min(radius, rowHeight / 2 - 2);
   const endX = indent - 8;
@@ -148,8 +140,14 @@ export function BranchedMenu({
         const leafValue = item.value ?? item.label;
         const leafActive = !kids && leafValue === active;
         const bodyH = kids ? PAD * 2 + kids.length * rowHeight : 0;
+        const sectionKey =
+          item.value ?? `${item.label}:${kids?.map((k) => k.value).join(",") ?? "leaf"}`;
         return (
-          <div className="branched-menu__section" data-open={isOpen ? "" : undefined} key={`${item.label}-${i}`}>
+          <div
+            className="branched-menu__section"
+            data-open={isOpen ? "" : undefined}
+            key={sectionKey}
+          >
             <button
               aria-current={leafActive ? "true" : undefined}
               aria-expanded={kids ? isOpen : undefined}
@@ -179,14 +177,14 @@ export function BranchedMenu({
               <div className="branched-menu__body">
                 <div className="branched-menu__fold">
                   <div className="branched-menu__tree" style={{ minHeight: bodyH }}>
-                    <svg
-                      aria-hidden
-                      className="branched-menu__lines"
-                      height={bodyH}
-                      width={indent}
-                    >
+                    <svg aria-hidden className="branched-menu__lines" height={bodyH} width={indent}>
+                      <title>Branch lines</title>
                       {kids.map((kid, k) => (
-                        <path className="branched-menu__base" d={branch(k)} key={`b-${kid.value}`} />
+                        <path
+                          className="branched-menu__base"
+                          d={branch(k)}
+                          key={`b-${kid.value}`}
+                        />
                       ))}
                       {kids.map((kid, k) => {
                         const len = length(k);
@@ -218,9 +216,7 @@ export function BranchedMenu({
                       >
                         {kid.icon ? <span className="branched-menu__icon">{kid.icon}</span> : null}
                         <span className="branched-menu__label">{kid.label}</span>
-                        {kid.meta ? (
-                          <span className="branched-menu__meta">{kid.meta}</span>
-                        ) : null}
+                        {kid.meta ? <span className="branched-menu__meta">{kid.meta}</span> : null}
                       </button>
                     ))}
                   </div>

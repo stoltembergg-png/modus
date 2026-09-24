@@ -151,13 +151,13 @@ import {
 import {
   archiveProjectChats,
   deleteProjectChats,
+  ensureChatsWorkspace,
   getRecentWorkspaces,
   openWorkspace,
   removeProject,
   renameProject,
   revealProject,
   setProjectPinned,
-  ensureChatsWorkspace,
 } from "../workspace/workspace-service";
 import { upsertWorkspace } from "../workspace/workspace-store";
 import { IPC_CHANNELS } from "./channels";

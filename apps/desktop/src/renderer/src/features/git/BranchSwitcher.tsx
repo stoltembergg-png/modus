@@ -101,7 +101,11 @@ export function BranchSwitcher({
       return {
         value: `local:${branch.name}`,
         label: busy === branch.name ? `${branch.name}…` : branch.name,
-        icon: branch.current ? <IconCheck size={13} stroke={2} /> : <IconGitBranch size={13} stroke={1.7} />,
+        icon: branch.current ? (
+          <IconCheck size={13} stroke={2} />
+        ) : (
+          <IconGitBranch size={13} stroke={1.7} />
+        ),
         ...(meta ? { meta } : {}),
       };
     });
@@ -114,7 +118,10 @@ export function BranchSwitcher({
     const items: BranchedMenuItem[] = [
       {
         label: "Local",
-        children: localChildren.length > 0 ? localChildren : [{ value: "local:none", label: "No local branches" }],
+        children:
+          localChildren.length > 0
+            ? localChildren
+            : [{ value: "local:none", label: "No local branches" }],
       },
     ];
     if (remoteChildren.length > 0) {

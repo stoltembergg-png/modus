@@ -59,8 +59,8 @@ export function ScrollReveal({
       if (/^\s+$/.test(word)) {
         return word;
       }
-      // biome-ignore lint/suspicious/noArrayIndexKey: word order is the identity for this fixed string
       return (
+        // biome-ignore lint/suspicious/noArrayIndexKey: word order is the identity for this fixed string
         <span className="inline-block" key={`w${index}-${word}`}>
           {word}
         </span>
@@ -121,11 +121,7 @@ export function ScrollReveal({
     };
   }, [scrollContainerRef, once, reduce, enableBlur, topEdgeBlur]);
 
-  const blurPx = visible
-    ? edgeBlur
-    : enableBlur
-      ? blurStrength
-      : 0;
+  const blurPx = visible ? edgeBlur : enableBlur ? blurStrength : 0;
 
   return (
     <m.div
