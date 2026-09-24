@@ -1,0 +1,12 @@
+--- a/apps/desktop/src/renderer/src/features/composer/Composer.tsx
++++ b/apps/desktop/src/renderer/src/features/composer/Composer.tsx
+@@ -840,7 +840,8 @@
+   const chipClass =
+     "app-no-drag inline-flex h-7 min-w-0 flex-none cursor-pointer touch-manipulation items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-fg-muted outline-none transition-colors select-none hover:bg-hover hover:text-fg data-popup-open:bg-hover data-popup-open:text-fg data-disabled:pointer-events-none data-disabled:opacity-45";
+   // Prompt Bar: both model + effort chips turn spark purple at max effort.
+-  const chipMaxClass = "text-[color:var(--color-focus-ring-soft)] hover:text-[color:var(--color-focus-ring-soft)]";
++  const chipMaxClass =
++    "text-[color:var(--color-focus-ring-soft)] hover:text-[color:var(--color-focus-ring-soft)]";
+ 
+   if (!current) {
+     return (

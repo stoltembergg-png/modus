@@ -1,0 +1,29 @@
+name: apply-biome-composer
+on:
+  push:
+    branches: [cursor/ui-aurora-effort-browser-locale-5588]
+    paths:
+      - ".github/tmp/biome-composer-trigger"
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/ui-aurora-effort-browser-locale-5588
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply biome Composer format patch
+        run: |
+          set -euo pipefail
+          git apply .github/tmp/biome-composer.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/src/renderer/src/features/composer/Composer.tsx
+          git commit -m "style: biome format security.test and Composer effort chip"
+          rm -f .github/tmp/biome-composer.patch .github/tmp/biome-composer-trigger
+          rm -f .github/workflows/apply-biome-composer.yml
+          git add -A
+          git commit -m "chore: remove biome-composer apply staging"
+          git push
