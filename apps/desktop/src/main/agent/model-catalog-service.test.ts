@@ -68,6 +68,12 @@ describe("model catalog", () => {
         .filter((model) => model.reasoning)
         .every((model) => model.reasoningCapability !== undefined),
     ).toBe(true);
+    const gpt6Models = ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"];
+    for (const provider of ["openai", "openai-codex"]) {
+      expect(shipped.providers[provider]?.map(({ id }) => id)).toEqual(
+        expect.arrayContaining(gpt6Models),
+      );
+    }
   });
 
   it("accepts explicit option and budget capabilities", () => {
