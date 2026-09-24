@@ -1,10 +1,4 @@
-import {
-  m,
-  useAnimationFrame,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-} from "motion/react";
+import { m, useAnimationFrame, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { useEffect, useRef } from "react";
 import { cn } from "../../lib/cn";
 

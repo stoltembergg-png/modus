@@ -126,7 +126,13 @@ function Unsupported({
   );
 }
 
-function Centered({ children, className }: { children: ReactNode; className?: string | undefined }) {
+function Centered({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string | undefined;
+}) {
   return (
     <div
       className={cn(
