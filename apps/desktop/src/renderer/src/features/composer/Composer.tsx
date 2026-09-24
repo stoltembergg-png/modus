@@ -10,7 +10,7 @@ import {
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import {
   type ClipboardEvent,
   type CSSProperties,
@@ -632,25 +632,35 @@ export function Composer({
 
         {images.length > 0 ? (
           <div className="flex flex-wrap gap-2 px-3 pt-1.5">
-            {images.map((image) => (
-              <div className="group/image relative" key={image.id}>
-                <ImageThumb
-                  alt={image.name}
-                  className="size-14 rounded-lg border border-hairline bg-canvas object-contain"
-                  onSaveEdited={(dataUrl) => updateImage(image.id, dataUrl)}
-                  src={image.dataUrl}
-                  title={image.name}
-                />
-                <button
-                  aria-label={`Remove ${image.name}`}
-                  className="absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full border border-hairline bg-elevated text-fg-faint opacity-0 transition-opacity hover:text-fg group-hover/image:opacity-100"
-                  onClick={() => removeImage(image.id)}
-                  type="button"
+            <AnimatePresence initial={false}>
+              {images.map((image) => (
+                <m.div
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="group/image relative"
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  key={image.id}
+                  layout
+                  transition={{ duration: 0.14, ease: "easeOut" }}
                 >
-                  <IconX size={11} stroke={2.2} />
-                </button>
-              </div>
-            ))}
+                  <ImageThumb
+                    alt={image.name}
+                    className="size-14 rounded-lg border border-hairline bg-canvas object-contain"
+                    onSaveEdited={(dataUrl) => updateImage(image.id, dataUrl)}
+                    src={image.dataUrl}
+                    title={image.name}
+                  />
+                  <button
+                    aria-label={`Remove ${image.name}`}
+                    className="absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full border border-hairline bg-elevated text-fg-faint opacity-0 transition-opacity hover:text-fg group-hover/image:opacity-100"
+                    onClick={() => removeImage(image.id)}
+                    type="button"
+                  >
+                    <IconX size={11} stroke={2.2} />
+                  </button>
+                </m.div>
+              ))}
+            </AnimatePresence>
           </div>
         ) : null}
 
