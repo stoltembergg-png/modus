@@ -47,13 +47,14 @@ export function createMainWindow({
     icon: appIconPath,
     backgroundColor: "#131314",
     show: true,
-    // macOS: native traffic lights via hiddenInset (aligned with 44px menubar).
+    // macOS: native traffic lights via hiddenInset (aligned with the 36px
+    // conversation toolbar / sidebar titlebar strip — no separate MenuBar).
     // Windows/Linux: frameless + custom WindowControls — avoids titleBarOverlay
-    // caption hit-targets that spill past the menubar height.
+    // caption hit-targets that spill past the toolbar height.
     ...(isMac
       ? {
           titleBarStyle: "hiddenInset" as const,
-          trafficLightPosition: { x: 14, y: 14 },
+          trafficLightPosition: { x: 14, y: 10 },
         }
       : {
           frame: false,
