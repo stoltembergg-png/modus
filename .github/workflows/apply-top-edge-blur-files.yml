@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: cursor/upstream-ui-polish-5588
-      - name: Decode full files, commit, cleanup
+      - name: Apply patches, commit, cleanup
         env:
           COMMIT_MSG: |
             fix(ui): top-edge gradient blur instead of full-chat blur
@@ -26,33 +26,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          decode() {
-            stem="$1"
-            dest="$2"
-            mkdir -p "$(dirname "$dest")"
-            if [ -f ".github/agent-staging/${stem}.gz.b64" ]; then
-              base64 -d < ".github/agent-staging/${stem}.gz.b64" | gzip -d > "$dest"
-            else
-              cat .github/agent-staging/"${stem}".gz.b64.part* | base64 -d | gzip -d > "$dest"
-            fi
-            echo "wrote $dest ($(wc -c < "$dest") bytes)"
-          }
-
-          decode apps__desktop__src__renderer__src__features__agent__Timeline.tsx \
-            apps/desktop/src/renderer/src/features/agent/Timeline.tsx
-          decode apps__desktop__src__renderer__src__features__agent__ChatPane.tsx \
-            apps/desktop/src/renderer/src/features/agent/ChatPane.tsx
-          decode apps__desktop__src__renderer__src__styles__app.css \
-            apps/desktop/src/renderer/src/styles/app.css
+          curl -fsSL "https://raw.githubusercontent.com/stoltembergg-png/modus/38fbc58892a7a6e35834d1542a1663dedd51a36f/apps/desktop/src/renderer/src/features/agent/Timeline.tsx" \
+            -o apps/desktop/src/renderer/src/features/agent/Timeline.tsx
+          patch -p1 < .github/agent-staging/Timeline.patch
+          patch -p1 < .github/agent-staging/ChatPane.patch
+          patch -p1 < .github/agent-staging/app.css.patch
 
           grep -q chat-scroll-top-blur apps/desktop/src/renderer/src/styles/app.css
           grep -qv PLACEHOLDER apps/desktop/src/renderer/src/features/agent/Timeline.tsx
+          grep -q chat-scroll-top-blur apps/desktop/src/renderer/src/features/agent/ChatPane.tsx
 
           git add \
             apps/desktop/src/renderer/src/features/agent/Timeline.tsx \
             apps/desktop/src/renderer/src/features/agent/ChatPane.tsx \
             apps/desktop/src/renderer/src/styles/app.css
           printf '%s' "$COMMIT_MSG" | git commit -F -
+
           git rm -rf .github/agent-staging
           git rm -f .github/workflows/apply-top-edge-blur-files.yml
           git commit -m "chore: remove top-edge-blur file staging"
