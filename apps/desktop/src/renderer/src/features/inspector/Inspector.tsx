@@ -274,7 +274,7 @@ export function Inspector({
 
   return (
     <m.aside
-      className="relative flex min-w-0 shrink-0 flex-col overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
+      className="relative flex min-w-0 shrink-0 flex-col overflow-hidden rounded-b-lg border border-hairline-strong border-t-0 bg-canvas"
       style={{ width: panelWidth }}
     >
       {open ? (

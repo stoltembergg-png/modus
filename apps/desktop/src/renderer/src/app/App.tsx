@@ -705,6 +705,7 @@ export function App() {
   const hasSession = Boolean(activeSession);
   const activeCwd = activeSession?.cwd ?? activeWorkspace?.rootPath;
   const branch = useGitBranch(activeCwd);
+  const isMac = window.modus?.app.platform === "darwin";
   const activeRunning = activeSession
     ? (activityBySession[activeSession.id]?.running ?? false)
     : false;
@@ -830,7 +831,10 @@ export function App() {
         <NativeSurfaceProvider>
           <ImageViewerProvider>
             <div className="app-root flex h-screen flex-col bg-panel text-fg">
-              <MenuBar />
+              {/* Settings keeps a dedicated titlebar. Conversation chrome uses the
+                  main toolbar as the drag/traffic-light row so there is no empty
+                  band above the chat header. */}
+              {settingsOpen ? <MenuBar /> : null}
 
               <FadeContent blur className="flex min-h-0 min-w-0 flex-1 flex-col" duration={0.7}>
                 <div
@@ -841,7 +845,9 @@ export function App() {
                       ? undefined
                       : {
                           gap: WORKSPACE_GUTTER,
-                          padding: WORKSPACE_GUTTER,
+                          paddingTop: 0,
+                          paddingRight: WORKSPACE_GUTTER,
+                          paddingBottom: WORKSPACE_GUTTER,
                           paddingLeft: responsiveSidebarOpen ? 0 : WORKSPACE_GUTTER,
                         }
                   }
@@ -890,12 +896,18 @@ export function App() {
                       />
 
                       <m.main
-                        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
+                        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-b-lg border border-hairline-strong border-t-0 bg-canvas"
                         layout={!reduceMotion}
                         layoutDependency={responsiveSidebarOpen}
                         transition={{ layout: SIDEBAR_TRANSITION }}
                       >
-                        <header className="toolbar-row relative z-10 flex shrink-0 items-center px-3">
+                        <header
+                          className={cn(
+                            "toolbar-row app-drag relative z-10 flex shrink-0 items-center px-3",
+                            // Traffic lights sit in this row when the left sidebar is closed.
+                            isMac && !responsiveSidebarOpen && "pl-[76px]",
+                          )}
+                        >
                           <div className="app-no-drag flex min-w-0 flex-1 items-center gap-1.5">
                             {/* Toggle always lives here so collapse/expand never jumps
                               between the sidebar footer and the main header. */}
@@ -923,15 +935,18 @@ export function App() {
                               />
                             ) : null}
                           </div>
-                          <div className="flex flex-1 items-center justify-end pr-2">
-                            <HeaderActions
-                              activeWorkspace={activeWorkspace}
-                              branch={branch}
-                              environmentStats={environmentStats}
-                              inspectorOpen={responsiveInspectorOpen}
-                              onOpenSettings={() => setSettingsOpen(true)}
-                              onToggleInspector={() => setInspectorOpen((open) => !open)}
-                            />
+                          <div className="flex h-full flex-1 items-center justify-end">
+                            <div className="pr-2">
+                              <HeaderActions
+                                activeWorkspace={activeWorkspace}
+                                branch={branch}
+                                environmentStats={environmentStats}
+                                inspectorOpen={responsiveInspectorOpen}
+                                onOpenSettings={() => setSettingsOpen(true)}
+                                onToggleInspector={() => setInspectorOpen((open) => !open)}
+                              />
+                            </div>
+                            {isMac ? null : <WindowControls />}
                           </div>
                         </header>
 
@@ -1080,7 +1095,7 @@ export function App() {
                         <Suspense
                           fallback={
                             <div
-                              className="flex min-h-0 min-w-0 shrink-0 overflow-hidden rounded-lg border border-hairline-strong bg-canvas"
+                              className="flex min-h-0 min-w-0 shrink-0 overflow-hidden rounded-b-lg border border-hairline-strong border-t-0 bg-canvas"
                               style={{ width: inspectorWidth }}
                             >
                               <ModusLoadingFallback />
@@ -1139,9 +1154,12 @@ export function App() {
 }
 
 /**
- * Top chrome strip (44px):
+ * Top chrome strip (44px) — settings only:
  *   - macOS: native traffic lights only; File/Edit/View/Help live in the system menu bar
  *   - Windows/Linux: frameless titlebar + in-window menu labels + WindowControls
+ *
+ * Conversation layout folds drag / traffic-light clearance into the sidebar +
+ * main toolbar so the chat header sits flush with the window top.
  */
 function MenuBar() {
   const isMac = window.modus?.app.platform === "darwin";
