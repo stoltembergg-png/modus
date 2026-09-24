@@ -1,0 +1,57 @@
+name: apply-fade-restore
+on:
+  push:
+    branches: [cursor/composer-prompt-bar-ui-5588]
+    paths:
+      - .github/workflows/apply-fade-restore.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/composer-prompt-bar-ui-5588
+      - name: Restore Gradient Waves fade from main
+        run: |
+          set -euo pipefail
+          patch -p1 <<'PATCH'
+          diff --git a/apps/desktop/src/renderer/src/features/composer/Composer.tsx b/apps/desktop/src/renderer/src/features/composer/Composer.tsx
+          --- a/apps/desktop/src/renderer/src/features/composer/Composer.tsx
+          +++ b/apps/desktop/src/renderer/src/features/composer/Composer.tsx
+          @@ -10,6 +10,7 @@ import {
+             IconSparkles,
+             IconX,
+           } from "@tabler/icons-react";
+          +import { AnimatePresence } from "motion/react";
+           import {
+             type ClipboardEvent,
+             type CSSProperties,
+          @@ -566,7 +567,18 @@ export function Composer({
+                   onDragOver={handleDragOver}
+                   onDrop={handleDrop}
+                 >
+          -        {isRunning ? <GradientWaves detail="medium" grain opacity={0.6} speed={0.45} /> : null}
+          +        <AnimatePresence>
+          +          {isRunning ? (
+          +            <GradientWaves
+          +              key="composer-waves"
+          +              detail="medium"
+          +              fadeDuration={0.45}
+          +              grain
+          +              opacity={0.6}
+          +              speed={0.45}
+          +            />
+          +          ) : null}
+          +        </AnimatePresence>
+                   <div
+                     className="relative z-10"
+                     onCompositionEnd={() => setIsComposing(false)}
+          PATCH
+          rm -f .github/workflows/apply-fade-restore.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(composer): keep Gradient Waves fade with Prompt Bar chips"
+          git push
