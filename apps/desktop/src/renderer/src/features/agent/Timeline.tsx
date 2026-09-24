@@ -1,5 +1,5 @@
 import { IconAlertCircle, IconCircleDashed, IconListCheck } from "@tabler/icons-react";
-import { useMemo } from "react";
+import { type ReactNode, type RefObject, useMemo } from "react";
 import type { AgentEventItem } from "../../../../shared/agent-events";
 import type {
   CompactionReason,
@@ -17,6 +17,7 @@ import type {
 } from "../../../../shared/contracts";
 import { getToolUiMeta, toolRenderKind } from "../../../../shared/tools";
 import { CopyButton } from "../../components/ui/CopyButton";
+import { ScrollReveal } from "../../components/ui/ScrollReveal";
 import { formatClock } from "../../lib/formatClock";
 import { WorkActivityRow, WorkFold } from "./ActivityGroup";
 import { MessageBlock } from "./MessageBlock";
@@ -49,6 +50,8 @@ type TimelineProps = {
   workspaceId?: string | undefined;
   /** Tighter padding when embedded in the subagent preview sheet (no composer clearance). */
   embedded?: boolean | undefined;
+  /** Chat scrollport — drives React Bits–style ScrollReveal as turns enter view. */
+  scrollContainerRef?: RefObject<HTMLElement | null>;
 };
 
 export type MessageBlockItem = {
@@ -1164,6 +1167,7 @@ export function Timeline({
   onOpenPlan,
   onOpenFile,
   embedded = false,
+  scrollContainerRef,
 }: TimelineProps) {
   const renderKeys = useMemo(() => blockRenderKeys(blocks), [blocks]);
   const turns = useMemo(() => segmentTurns(blocks, renderKeys), [blocks, renderKeys]);
@@ -1176,8 +1180,8 @@ export function Timeline({
     <div
       className={
         embedded
-          ? "min-w-0 w-full max-w-full px-4 pt-4 pb-6"
-          : "min-w-0 w-full max-w-full px-4 pt-8 pb-24"
+          ? "min-w-0 w-full max-w-full px-4 pt-0 pb-6"
+          : "min-w-0 w-full max-w-full px-4 pt-0 pb-24"
       }
     >
       {/* Same .chat-column token as ChatPane's composer wrapper — one width authority,
@@ -1192,48 +1196,14 @@ export function Timeline({
             {turn.blocks.map(({ block, key }) => {
               if (block.type === "message" && block.role === "user") {
                 if (block.planBuild) {
-                  return <PlanBuildCard key={key} planBuild={block.planBuild} />;
+                  return (
+                    <TimelineReveal key={key} scrollContainerRef={scrollContainerRef}>
+                      <PlanBuildCard planBuild={block.planBuild} />
+                    </TimelineReveal>
+                  );
                 }
                 return (
-                  <MessageBlock
-                    key={key}
-                    {...(block.attachments ? { attachments: block.attachments } : {})}
-                    {...(block.contextChips ? { contextChips: block.contextChips } : {})}
-                    {...(block.contextItems ? { contextItems: block.contextItems } : {})}
-                    {...(block.skills ? { skills: block.skills } : {})}
-                    {...(block.checkpointId !== undefined
-                      ? { checkpointId: block.checkpointId }
-                      : {})}
-                    {...(onRestoreCheckpoint ? { onRestoreCheckpoint } : {})}
-                    {...(embedded ? { compactClip: true } : {})}
-                    content={block.content}
-                    cwd={cwd}
-                    {...(onOpenFile ? { onOpenFile } : {})}
-                    editable={block.editable ?? false}
-                    messageId={block.id}
-                    {...(onEditResend ? { onEditResend } : {})}
-                    {...(model ? { model } : {})}
-                    {...(models ? { models } : {})}
-                    messageRole={block.role}
-                    streaming={block.streaming ?? false}
-                    workspaceId={workspaceId}
-                  />
-                );
-              }
-
-              return (
-                <div className="w-full px-8" key={key}>
-                  {block.type === "work-fold" ? (
-                    <WorkFold
-                      items={block.items}
-                      {...(models ? { models } : {})}
-                      run={block.run}
-                      {...(onOpenFile ? { onOpenFile } : {})}
-                      {...(onOpenPlan ? { onOpenPlan } : {})}
-                      {...(onOpenSubagent ? { onOpenSubagent } : {})}
-                    />
-                  ) : null}
-                  {block.type === "message" ? (
+                  <TimelineReveal key={key} scrollContainerRef={scrollContainerRef}>
                     <MessageBlock
                       {...(block.attachments ? { attachments: block.attachments } : {})}
                       {...(block.contextChips ? { contextChips: block.contextChips } : {})}
@@ -1243,28 +1213,75 @@ export function Timeline({
                         ? { checkpointId: block.checkpointId }
                         : {})}
                       {...(onRestoreCheckpoint ? { onRestoreCheckpoint } : {})}
+                      {...(embedded ? { compactClip: true } : {})}
                       content={block.content}
                       cwd={cwd}
                       {...(onOpenFile ? { onOpenFile } : {})}
                       editable={block.editable ?? false}
                       messageId={block.id}
                       {...(onEditResend ? { onEditResend } : {})}
+                      {...(model ? { model } : {})}
+                      {...(models ? { models } : {})}
                       messageRole={block.role}
                       streaming={block.streaming ?? false}
                       workspaceId={workspaceId}
                     />
-                  ) : null}
-                  {block.type === "notice" ? <Notice {...block} /> : null}
-                  {isWorkActivity(block) ? (
-                    <WorkActivityRow
-                      item={block}
-                      {...(models ? { models } : {})}
-                      {...(onOpenFile ? { onOpenFile } : {})}
-                      {...(onOpenPlan ? { onOpenPlan } : {})}
-                      {...(onOpenSubagent ? { onOpenSubagent } : {})}
-                    />
-                  ) : null}
-                </div>
+                  </TimelineReveal>
+                );
+              }
+
+              const streaming = block.type === "message" && Boolean(block.streaming);
+
+              return (
+                <TimelineReveal
+                  disabled={streaming}
+                  key={key}
+                  scrollContainerRef={scrollContainerRef}
+                >
+                  <div className="w-full px-8">
+                    {block.type === "work-fold" ? (
+                      <WorkFold
+                        items={block.items}
+                        {...(models ? { models } : {})}
+                        run={block.run}
+                        {...(onOpenFile ? { onOpenFile } : {})}
+                        {...(onOpenPlan ? { onOpenPlan } : {})}
+                        {...(onOpenSubagent ? { onOpenSubagent } : {})}
+                      />
+                    ) : null}
+                    {block.type === "message" ? (
+                      <MessageBlock
+                        {...(block.attachments ? { attachments: block.attachments } : {})}
+                        {...(block.contextChips ? { contextChips: block.contextChips } : {})}
+                        {...(block.contextItems ? { contextItems: block.contextItems } : {})}
+                        {...(block.skills ? { skills: block.skills } : {})}
+                        {...(block.checkpointId !== undefined
+                          ? { checkpointId: block.checkpointId }
+                          : {})}
+                        {...(onRestoreCheckpoint ? { onRestoreCheckpoint } : {})}
+                        content={block.content}
+                        cwd={cwd}
+                        {...(onOpenFile ? { onOpenFile } : {})}
+                        editable={block.editable ?? false}
+                        messageId={block.id}
+                        {...(onEditResend ? { onEditResend } : {})}
+                        messageRole={block.role}
+                        streaming={block.streaming ?? false}
+                        workspaceId={workspaceId}
+                      />
+                    ) : null}
+                    {block.type === "notice" ? <Notice {...block} /> : null}
+                    {isWorkActivity(block) ? (
+                      <WorkActivityRow
+                        item={block}
+                        {...(models ? { models } : {})}
+                        {...(onOpenFile ? { onOpenFile } : {})}
+                        {...(onOpenPlan ? { onOpenPlan } : {})}
+                        {...(onOpenSubagent ? { onOpenSubagent } : {})}
+                      />
+                    ) : null}
+                  </div>
+                </TimelineReveal>
               );
             })}
             <TurnFooter turn={turn} />
@@ -1272,6 +1289,26 @@ export function Timeline({
         ))}
       </div>
     </div>
+  );
+}
+
+/** React Bits ScrollReveal — skip while a block is still streaming tokens. */
+function TimelineReveal({
+  children,
+  scrollContainerRef,
+  disabled = false,
+}: {
+  children: ReactNode;
+  scrollContainerRef?: RefObject<HTMLElement | null> | undefined;
+  disabled?: boolean | undefined;
+}) {
+  if (disabled || !scrollContainerRef) {
+    return children;
+  }
+  return (
+    <ScrollReveal blurStrength={3} offsetY={14} once scrollContainerRef={scrollContainerRef}>
+      {children}
+    </ScrollReveal>
   );
 }
 

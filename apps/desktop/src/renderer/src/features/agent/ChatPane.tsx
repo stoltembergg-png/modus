@@ -1007,6 +1007,7 @@ export function ChatPane({
               await window.modus.checkpoint.restore({ checkpointId });
               refreshStats();
             }}
+            scrollContainerRef={scrollContainerRef}
             workspaceId={workspace?.id}
           />
         </ChatViewport>
