@@ -47,7 +47,7 @@ float snoise(vec2 v){
   );
 
   vec3 m = max(
-    0.5 - vec3(
+      0.5 - vec3(
           dot(x0, x0),
           dot(x12.xy, x12.xy),
           dot(x12.zw, x12.zw)
@@ -91,13 +91,18 @@ struct ColorStop {
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
 
+  // Horizontal + slight vertical drift so the ribbon reads as multiple hues,
+  // not a single flat wash of the brand purple.
+  float bandNoise = snoise(vec2(uv.x * 1.4 + uTime * 0.05, uTime * 0.12));
+  float rampT = clamp(uv.x * 0.82 + uv.y * 0.18 + bandNoise * 0.14, 0.0, 1.0);
+
   ColorStop colors[3];
   colors[0] = ColorStop(uColorStops[0], 0.0);
-  colors[1] = ColorStop(uColorStops[1], 0.5);
+  colors[1] = ColorStop(uColorStops[1], 0.48);
   colors[2] = ColorStop(uColorStops[2], 1.0);
 
   vec3 rampColor;
-  COLOR_RAMP(colors, uv.x, rampColor);
+  COLOR_RAMP(colors, rampT, rampColor);
 
   float height = snoise(vec2(uv.x * 2.0 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
   height = exp(height);
@@ -107,12 +112,18 @@ void main() {
   float midPoint = 0.20;
   float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
 
+  // Long soft vignette inside the shader so the band dissolves into the canvas
+  // even when CSS mask-composite is weak / ignored. Wide rims on every side.
+  float edgeX = smoothstep(0.0, 0.34, uv.x) * smoothstep(1.0, 0.66, uv.x);
+  float edgeY = smoothstep(0.0, 0.28, uv.y) * smoothstep(1.0, 0.32, uv.y);
+  auroraAlpha *= edgeX * edgeY;
+
   vec3 auroraColor = intensity * rampColor;
 
   if (uLightMode > 0.5) {
     float energy = clamp(max(intensity, 0.0), 0.0, 1.0);
     float coverage = clamp(auroraAlpha * (0.55 + 0.45 * energy), 0.0, 0.86);
-    vec3 chroma = pow(clamp(rampColor, 0.0, 1.0), vec3(1.2));
+    vec3 chroma = pow(clamp(rampColor, 0.0, 1.0), vec3(1.05));
     float chromaPeak = max(chroma.r, max(chroma.g, chroma.b));
     chroma /= max(chromaPeak, 0.0001);
     fragColor = vec4(mix(vec3(1.0), chroma, min(coverage * 1.08, 0.94)), 1.0);
@@ -142,20 +153,24 @@ function themeIsLight(): boolean {
   return document.documentElement.getAttribute("data-theme") === "light";
 }
 
+/**
+ * Cyan → brand violet → magenta. The previous ramp used two near-identical
+ * purples plus canvas black, so the band read as a single flat color.
+ */
 function themeStops(container: HTMLElement): string[] {
   const styles = getComputedStyle(container);
-  const ring = styles.getPropertyValue("--color-focus-ring").trim() || "#853ff4";
-  const soft = styles.getPropertyValue("--color-focus-ring-soft").trim() || "#b388ff";
-  // Horizon-ish third stop from canvas so the band settles into the page.
-  const canvas = styles.getPropertyValue("--color-canvas").trim() || "#0c0c0c";
-  return [ring, soft, canvas];
+  const mid = styles.getPropertyValue("--color-focus-ring").trim() || "#853ff4";
+  if (themeIsLight()) {
+    return ["#06b6d4", mid, "#ec4899"];
+  }
+  return ["#22d3ee", mid, "#f472b6"];
 }
 
 /** Soft aurora band for the empty / new-chat hero. */
 export function Aurora({
   colorStops,
-  amplitude = 1,
-  blend = 0.5,
+  amplitude = 1.15,
+  blend = 0.65,
   speed = 1,
   lightMode,
   className,
@@ -249,7 +264,7 @@ export function Aurora({
     const update = (t: number) => {
       raf = requestAnimationFrame(update);
       if (!visible || document.hidden) return;
-      const { speed: spd = 1, amplitude: amp = 1, blend: b = 0.5 } = propsRef.current;
+      const { speed: spd = 1, amplitude: amp = 1.15, blend: b = 0.65 } = propsRef.current;
       program.uniforms.uTime.value = t * 0.01 * spd * 0.1;
       program.uniforms.uAmplitude.value = amp;
       program.uniforms.uBlend.value = b;
@@ -276,11 +291,11 @@ export function Aurora({
       aria-hidden
       className={cn(
         "pointer-events-none absolute inset-0 overflow-hidden",
-        // Soft-edge mask so the aurora band dissolves into the canvas instead
-        // of reading as a hard WebGL rectangle (React Bits–style vignette).
-        "[mask-image:linear-gradient(to_right,transparent_0%,#000_10%,#000_90%,transparent_100%),linear-gradient(to_bottom,transparent_0%,#000_12%,#000_70%,transparent_100%)]",
+        // Long soft fades — previous mask hit solid by ~10%, so the vignette
+        // was barely visible. Wide transparent rim on every side.
+        "[mask-image:radial-gradient(ellipse_72%_62%_at_50%_36%,#000_0%,#000_22%,transparent_72%),linear-gradient(to_bottom,transparent_0%,#000_18%,#000_42%,transparent_86%)]",
         "[mask-composite:intersect]",
-        "[-webkit-mask-image:linear-gradient(to_right,transparent_0%,#000_10%,#000_90%,transparent_100%),linear-gradient(to_bottom,transparent_0%,#000_12%,#000_70%,transparent_100%)]",
+        "[-webkit-mask-image:radial-gradient(ellipse_72%_62%_at_50%_36%,#000_0%,#000_22%,transparent_72%),linear-gradient(to_bottom,transparent_0%,#000_18%,#000_42%,transparent_86%)]",
         "[-webkit-mask-composite:source-in]",
         className,
       )}

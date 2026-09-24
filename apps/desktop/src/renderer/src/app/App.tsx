@@ -1017,7 +1017,12 @@ export function App() {
                                 ease: "easeOut",
                               }}
                             >
-                              <Aurora blend={0.55} className="opacity-90" speed={0.85} />
+                              <Aurora
+                                amplitude={1.15}
+                                blend={0.65}
+                                className="opacity-95"
+                                speed={0.85}
+                              />
                               <div className="relative z-10 w-full max-w-[680px] -translate-y-4">
                                 <div className="mb-5 flex justify-center">
                                   <ModusBot className="size-20" />
