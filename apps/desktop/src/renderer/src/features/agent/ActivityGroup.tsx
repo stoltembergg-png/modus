@@ -5,6 +5,7 @@ import type { ModelInfo, PlanRef } from "../../../../shared/contracts";
 import { getToolUiMeta, type ToolSummaryMeta } from "../../../../shared/tools";
 import { CollapsibleMotion } from "../../components/ui/CollapsibleMotion";
 import { ShinyText } from "../../components/ui/ShinyText";
+import { ThoughtLine } from "../../components/ui/ThoughtLine";
 import { cn } from "../../lib/cn";
 import { MessageBlock } from "./MessageBlock";
 import { SubagentRow } from "./SubagentRow";
@@ -94,6 +95,26 @@ function toolTarget(item: Extract<WorkActivityItem, { type: "tool" }>): string |
 }
 
 const thoughtText = (text: string) => text.trim().replace(/\s+/g, " ");
+
+const MAX_THOUGHT_STEPS = 4;
+
+function collectThoughtSteps(items: WorkFoldItem[]): string[] {
+  const steps: string[] = [];
+  for (const item of items) {
+    if (item.type === "thought") {
+      const preview = thoughtText(item.text);
+      if (preview) steps.push(preview);
+    } else if (item.type === "work-activity-group") {
+      for (const activity of item.items) {
+        if (activity.type !== "thought") continue;
+        const preview = thoughtText(activity.text);
+        if (preview) steps.push(preview);
+      }
+    }
+    if (steps.length >= MAX_THOUGHT_STEPS) break;
+  }
+  return steps.slice(0, MAX_THOUGHT_STEPS);
+}
 
 function isActivityActive(item: GroupedWorkActivityItem): boolean {
   if (item.type === "thought") return item.streaming === true;
@@ -196,10 +217,31 @@ export function WorkActivityRow({
 }) {
   if (item.type === "thought") {
     if (!item.streaming && !item.text.trim()) return null;
+    const preview = thoughtText(item.text);
+    if (item.streaming) {
+      return (
+        <ThoughtLine
+          className="text-fg-faint"
+          collapsible={false}
+          color="var(--color-fg-faint)"
+          fontSize={11}
+          label={preview || "Thinking…"}
+          showTimer={false}
+          working
+        />
+      );
+    }
     return (
-      <pre className="max-w-full whitespace-pre-wrap text-2xs text-fg-faint leading-relaxed">
-        {item.text}
-      </pre>
+      <ThoughtLine
+        className="text-fg-faint"
+        collapseOnSettle={false}
+        color="var(--color-fg-faint)"
+        doneLabel="Thought"
+        fontSize={11}
+        showTimer={false}
+        {...(preview ? { steps: [preview] } : {})}
+        working={false}
+      />
     );
   }
   if (item.type === "todos") return <TodosCard {...item} />;
@@ -255,27 +297,50 @@ export const WorkFold = memo(function WorkFold({
     return () => window.clearInterval(id);
   }, [active]);
 
-  const elapsed = formatElapsed(
-    active ? Date.now() : (run.completedAt ?? run.startedAt),
-    run.startedAt,
+  const elapsedSeconds = Math.max(
+    0,
+    ((active ? Date.now() : (run.completedAt ?? run.startedAt)) - run.startedAt) / 1000,
   );
-  const label =
+  const terminal =
     run.status === "failed"
       ? "Modus stopped"
       : run.status === "cancelled"
         ? "Stopped by you"
-        : active
-          ? `Working for ${elapsed}`
-          : `Worked for ${elapsed}`;
+        : null;
+  const thoughtSteps = collectThoughtSteps(items);
 
   return (
     <div className="min-w-0 text-sm">
-      <FoldHeader
-        controlsId={contentId}
-        label={label}
-        onToggle={() => setDisclosure({ active, open: !open })}
-        open={open}
-      />
+      <div className="flex min-w-0 items-start gap-1.5">
+        <ThoughtLine
+          className="min-w-0"
+          collapseOnSettle
+          color="var(--color-fg-subtle)"
+          doneLabel={terminal ?? "Worked for"}
+          elapsed={elapsedSeconds}
+          fontSize={13}
+          label="Working…"
+          showTimer={!terminal}
+          steps={thoughtSteps}
+          working={active}
+        />
+        <button
+          aria-controls={contentId}
+          aria-expanded={open}
+          aria-label={open ? "Collapse work" : "Expand work"}
+          className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-md text-fg-faint transition-colors hover:text-fg-muted"
+          onClick={() => setDisclosure({ active, open: !open })}
+          type="button"
+        >
+          <m.span
+            animate={{ rotate: open ? 90 : 0 }}
+            className="flex size-4 items-center justify-center"
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <IconChevronRight size={12} stroke={1.8} />
+          </m.span>
+        </button>
+      </div>
       <CollapsibleMotion id={contentId} open={open} preset="timeline">
         <div className="mt-0.5">
           <div className="space-y-2.5 pt-1.5 pb-2">

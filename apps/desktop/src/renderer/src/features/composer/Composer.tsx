@@ -3,16 +3,13 @@ import { Popover } from "@base-ui/react/popover";
 import { Slider } from "@base-ui/react/slider";
 import {
   IconAdjustmentsHorizontal,
-  IconArrowUp,
   IconCheck,
   IconChevronDown,
   IconChevronRight,
   IconListCheck,
-  IconPlayerStopFilled,
   IconPlus,
   IconX,
 } from "@tabler/icons-react";
-import { AnimatePresence, m } from "motion/react";
 import {
   type ClipboardEvent,
   type CSSProperties,
@@ -36,6 +33,7 @@ import type {
 } from "../../../../shared/contracts";
 import { GradientWaves } from "../../components/ui/GradientWaves";
 import { ImageThumb } from "../../components/ui/ImageViewer";
+import { PromptSendGlyph } from "../../components/ui/PromptSendGlyph";
 import { cn } from "../../lib/cn";
 import { ContextUsageRing, contextUsagePercent, formatUsagePercent } from "../../lib/contextUsage";
 import {
@@ -59,7 +57,7 @@ import { type SlashActionItem, type SlashItem, useComposerSlash } from "./useCom
 const COMPOSER_PLACEHOLDER = "What will you build with Modus?";
 
 /** Shared with read-only user bubbles — single radius/chrome truth for the prompt shell. */
-export const COMPOSER_RADIUS_CLASS = "rounded-[12px]";
+export const COMPOSER_RADIUS_CLASS = "rounded-[14px]";
 export const COMPOSER_SHELL_CLASS = cn(
   "border border-composer-border bg-surface shadow-composer-edge",
   COMPOSER_RADIUS_CLASS,
@@ -638,7 +636,7 @@ export function Composer({
         <div className="@container flex items-center gap-2 px-3 pt-1.5 pb-2.5">
           <button
             aria-label="Attach files"
-            className="app-no-drag flex size-[26px] shrink-0 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-hover hover:text-fg-muted"
+            className="app-no-drag flex size-[30px] shrink-0 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-hover hover:text-fg-muted"
             onClick={() => fileInputRef.current?.click()}
             title="Attach files"
             type="button"
@@ -693,7 +691,7 @@ export function Composer({
           {onCancel ? (
             <button
               aria-label="Cancel"
-              className="flex size-[26px] shrink-0 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-hover hover:text-fg-muted"
+              className="flex size-[30px] shrink-0 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-hover hover:text-fg-muted"
               disabled={submitting}
               onClick={onCancel}
               type="button"
@@ -702,39 +700,23 @@ export function Composer({
             </button>
           ) : null}
 
-          {/* Stop while running; otherwise the send button is always shown. */}
-          <AnimatePresence initial={false} mode="popLayout">
-            {isRunning && onAbort ? (
-              <m.button
-                animate={{ opacity: 1, scale: 1 }}
-                aria-label="Stop"
-                className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-fg text-canvas shadow-composer transition-colors hover:bg-fg-muted active:scale-[0.94]"
-                exit={{ opacity: 0 }}
-                initial={{ opacity: 0, scale: 0.96 }}
-                key="stop"
-                onClick={onAbort}
-                transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
-                type="button"
-              >
-                <IconPlayerStopFilled size={11} />
-              </m.button>
-            ) : (
-              <m.button
-                animate={{ opacity: 1 }}
-                aria-label="Send"
-                className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-fg text-canvas transition-colors hover:bg-fg-muted active:scale-[0.94] disabled:bg-chip-strong disabled:text-fg-faint"
-                disabled={!hasContent || !canSubmit || submitting || models.length === 0 || !model}
-                exit={{ opacity: 0 }}
-                initial={{ opacity: 0 }}
-                key="send"
-                onClick={() => send()}
-                transition={{ duration: 0.08, ease: "linear" }}
-                type="button"
-              >
-                <IconArrowUp size={14} stroke={2.4} />
-              </m.button>
-            )}
-          </AnimatePresence>
+          {/* One control: arrow → square morph while the agent is running. */}
+          <button
+            aria-label={isRunning ? "Stop" : "Send"}
+            className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-fg text-canvas transition-colors hover:bg-fg-muted active:scale-[0.94] disabled:bg-chip-strong disabled:text-fg-faint"
+            disabled={
+              isRunning
+                ? !onAbort
+                : !hasContent || !canSubmit || submitting || models.length === 0 || !model
+            }
+            onClick={() => {
+              if (isRunning) onAbort?.();
+              else send();
+            }}
+            type="button"
+          >
+            <PromptSendGlyph busy={isRunning} className="block size-3.5 origin-center" />
+          </button>
         </div>
       </div>
       {footer ? <div className="absolute inset-x-0 bottom-2 z-20 px-5">{footer}</div> : null}

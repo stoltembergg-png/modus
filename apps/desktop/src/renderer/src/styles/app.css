@@ -145,6 +145,9 @@
   --color-terminal-ansi-bright-cyan: #61d6d6;
   --color-terminal-ansi-bright-white: #f2f2f2;
 
+  /* Global UI scale (+15%). Text tokens multiply by --ui-scale. */
+  --ui-scale: 1.15;
+
   /* 字号阶梯 —— 校准 Cursor 桌面 Agent Window：
      2xs 11 → status / kbd
      xs  12 → Pro Plan 副行、底部副文案
@@ -152,11 +155,11 @@
      md  14 → composer textarea/placeholder（输入区）
      lg  15 → 暂不使用
      体系核心：用颜色做层级，字号阶梯本身用 13px 主导，避免"过分小" */
-  --text-2xs: 11px;
-  --text-xs: 12px;
-  --text-sm: 13px;
-  --text-md: 14px;
-  --text-lg: 15px;
+  --text-2xs: calc(11px * var(--ui-scale));
+  --text-xs: calc(12px * var(--ui-scale));
+  --text-sm: calc(13px * var(--ui-scale));
+  --text-md: calc(14px * var(--ui-scale));
+  --text-lg: calc(15px * var(--ui-scale));
 
   /* 圆角阶梯（DESIGN.md：xs4 / sm6 / md8 / lg12 / xl16 / pill） */
   --radius-xs: 4px;
@@ -198,7 +201,7 @@
   text-rendering: optimizeLegibility;
   /* Prefer platform AA (ClearType on Windows). Forced grayscale softens thick CJK into "cheap blur". */
   -moz-osx-font-smoothing: grayscale;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.5;
 }
 
