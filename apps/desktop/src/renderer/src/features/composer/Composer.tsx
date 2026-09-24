@@ -10,6 +10,7 @@ import {
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
+import { AnimatePresence } from "motion/react";
 import {
   type ClipboardEvent,
   type CSSProperties,
@@ -566,7 +567,18 @@ export function Composer({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        {isRunning ? <GradientWaves detail="medium" grain opacity={0.6} speed={0.45} /> : null}
+        <AnimatePresence>
+          {isRunning ? (
+            <GradientWaves
+              key="composer-waves"
+              detail="medium"
+              fadeDuration={0.45}
+              grain
+              opacity={0.6}
+              speed={0.45}
+            />
+          ) : null}
+        </AnimatePresence>
         <div
           className="relative z-10"
           onCompositionEnd={() => setIsComposing(false)}
