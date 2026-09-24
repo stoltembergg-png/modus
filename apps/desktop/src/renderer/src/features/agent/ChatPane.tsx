@@ -53,6 +53,7 @@ import { latestPendingQuestionRequest } from "./questionRequests";
 import { RetryStatusBar } from "./RetryStatusBar";
 import { latestSessionStatus } from "./runState";
 import { SubagentPreviewSheet } from "./SubagentPreviewSheet";
+import { readSessionScroll, rememberSessionScroll } from "./sessionScrollMemory";
 import {
   isSubagentSessionLive,
   isSubagentSessionWorking,
@@ -523,14 +524,51 @@ export function ChatPane({
   // Stick-to-bottom follows the bottom only while the session is working; idle
   // viewing/scrolling never snaps back (opencode's createAutoScroll model).
   const autoScroll = useAutoScroll(isRunning);
+  const autoScrollResumeRef = useRef(autoScroll.resume);
+  autoScrollResumeRef.current = autoScroll.resume;
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const setChatScrollRef = useCallback(
     (el: HTMLDivElement | null): void => {
+      scrollContainerRef.current = el;
       setScrollContainer(el);
       autoScroll.scrollRef(el);
     },
     [autoScroll.scrollRef],
   );
+
+  const handleChatScroll = useCallback((): void => {
+    autoScroll.handleScroll();
+    const el = scrollContainerRef.current;
+    if (el) {
+      rememberSessionScroll(sessionId, el.scrollTop);
+    }
+  }, [autoScroll, sessionId]);
+
+  /** After events paint, restore the user's place or pin to the latest turn. */
+  const settleSessionViewport = useCallback((savedTop: number | undefined): void => {
+    const apply = (): void => {
+      const el = scrollContainerRef.current;
+      if (!el) {
+        return;
+      }
+      if (savedTop !== undefined) {
+        el.scrollTop = Math.min(savedTop, Math.max(0, el.scrollHeight - el.clientHeight));
+        return;
+      }
+      autoScrollResumeRef.current();
+    };
+    // ThoughtLine / WorkFold layout settles across a couple frames; without
+    // retries an idle remount stays at scrollTop 0 (session start).
+    requestAnimationFrame(() => {
+      apply();
+      requestAnimationFrame(() => {
+        apply();
+        window.setTimeout(apply, 50);
+        window.setTimeout(apply, 200);
+      });
+    });
+  }, []);
   const visibleBlocks = useMemo(() => buildVisibleTimelineBlocks(agentEvents), [agentEvents]);
 
   // The latest plan written/updated in this session. Keep the inspector's data
@@ -667,14 +705,17 @@ export function ChatPane({
       }
       if (!cancelled) {
         setAgentEvents(foldAgentEvents([...(initialEvents ?? []), ...items]));
-        // Land at the latest message when opening a session. Idle sessions
-        // never auto-follow, so this initial pin is explicit.
-        requestAnimationFrame(() => autoScroll.resume());
+        // Prefer the scroll offset from the last visit; otherwise land on latest.
+        settleSessionViewport(readSessionScroll(sessionId));
       }
     })();
 
     return () => {
       cancelled = true;
+      const el = scrollContainerRef.current;
+      if (el) {
+        rememberSessionScroll(sessionId, el.scrollTop);
+      }
       unsubscribe();
       clearQueued();
       // View history ≠ keep SDK. Release when the pane leaves and no turn is live;
@@ -683,7 +724,7 @@ export function ChatPane({
         void window.modus.agent.releaseRuntime(sessionId);
       }
     };
-  }, [sessionId, hub, flushQueued, clearQueued]);
+  }, [sessionId, hub, flushQueued, clearQueued, settleSessionViewport]);
 
   /* ── Conversation actions ──────────────────────────────────────────── */
 
@@ -945,7 +986,7 @@ export function ChatPane({
         )}
         <ChatViewport
           contentRef={autoScroll.contentRef}
-          onScroll={autoScroll.handleScroll}
+          onScroll={handleChatScroll}
           scrollRef={setChatScrollRef}
         >
           <Timeline
