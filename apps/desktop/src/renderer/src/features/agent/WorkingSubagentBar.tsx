@@ -52,7 +52,7 @@ export function WorkingSubagentBar({
                 title={item.task}
                 type="button"
               >
-                <IconLayoutBoard className="shrink-0 text-fg-faint" size={15} stroke={1.7} />
+                <IconLayoutBoard className="shrink-0 text-fg-faint" size={14} stroke={1.7} />
                 <span className="min-w-0 flex-1 truncate text-sm text-fg-subtle transition-colors group-hover/row:text-fg">
                   {item.task}
                 </span>
