@@ -1480,21 +1480,21 @@ function EnvironmentPopover({
                     </button>
                   </div>
                   <div className="space-y-3 text-sm text-fg">
-                    <EnvironmentRow icon={<IconSourceCode size={17} stroke={1.65} />}>
+                    <EnvironmentRow icon={<IconSourceCode size={16} stroke={1.7} />}>
                       <span>Changes</span>
                       <span className="ml-auto font-mono text-success">
                         +{environmentStats.added}
                       </span>
                       <span className="font-mono text-danger">-{environmentStats.removed}</span>
                     </EnvironmentRow>
-                    <EnvironmentRow icon={<IconDeviceLaptop size={17} stroke={1.65} />}>
+                    <EnvironmentRow icon={<IconDeviceLaptop size={16} stroke={1.7} />}>
                       <span>{activeWorkspace ? "Local" : "No workspace"}</span>
                       <IconChevronDown className="text-fg-faint" size={12} stroke={2} />
                     </EnvironmentRow>
-                    <EnvironmentRow icon={<IconGitBranch size={17} stroke={1.65} />}>
+                    <EnvironmentRow icon={<IconGitBranch size={16} stroke={1.7} />}>
                       <span>{branch ?? "No branch"}</span>
                     </EnvironmentRow>
-                    <EnvironmentRow icon={<IconVersions size={17} stroke={1.65} />}>
+                    <EnvironmentRow icon={<IconVersions size={16} stroke={1.7} />}>
                       <span>Commit or push</span>
                     </EnvironmentRow>
                   </div>

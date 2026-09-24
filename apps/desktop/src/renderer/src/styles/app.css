@@ -145,21 +145,28 @@
   --color-terminal-ansi-bright-cyan: #61d6d6;
   --color-terminal-ansi-bright-white: #f2f2f2;
 
-  /* Global UI scale (+15%). Text tokens multiply by --ui-scale. */
-  --ui-scale: 1.15;
+  /* Global UI scale. Text tokens multiply by --ui-scale. */
+  --ui-scale: 1.1;
 
-  /* 字号阶梯 —— 校准 Cursor 桌面 Agent Window：
-     2xs 11 → status / kbd
-     xs  12 → Pro Plan 副行、底部副文案
-     sm  13 → 侧栏 nav、面包屑、模型选择器、账户名（主体字号）
-     md  14 → composer textarea/placeholder（输入区）
-     lg  15 → 暂不使用
-     体系核心：用颜色做层级，字号阶梯本身用 13px 主导，避免"过分小" */
+  /* Type ramp — single ladder for the whole app (chrome + chat + composer).
+     Hierarchy is color/weight, not one-off px. Never stack extra 0.9/0.95
+     surface shrinks on top of this.
+     2xs 11 → timestamps, kbd, uppercase labels
+     xs  12 → meta, captions, session titles
+     sm  13 → nav, menus, chips, UI body (dominant)
+     md  14 → markdown body, composer input
+     lg  15 → rare emphasis */
   --text-2xs: calc(11px * var(--ui-scale));
   --text-xs: calc(12px * var(--ui-scale));
   --text-sm: calc(13px * var(--ui-scale));
   --text-md: calc(14px * var(--ui-scale));
   --text-lg: calc(15px * var(--ui-scale));
+
+  /* Icon ladder (px) — mirror lib/uiDensity.ts ICON.* */
+  --icon-xs: 12px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 18px;
 
   /* 圆角阶梯（DESIGN.md：xs4 / sm6 / md8 / lg12 / xl16 / pill） */
   --radius-xs: 4px;
@@ -1000,24 +1007,21 @@ body {
 }
 
 /*
- * Step size shrinks going down (0.3em, 0.25em, 0.15em) — the eye needs the
- * biggest jump at the top of the hierarchy, where h1 vs h2 is a structural
- * decision, and the smallest jump at the bottom, where h4-6 only need to beat
- * body weight, not body size. Hierarchy is size + ink, not stroke mass —
- * CJK bold at 700 reads as ink blots.
+ * Step size shrinks going down — keep jumps modest so headings feel related
+ * to body (1.45 / 1.25 / 1.1), not a second type system.
  */
 .modus-markdown :where(h1) {
-  font-size: 1.7em;
+  font-size: 1.45em;
   font-weight: var(--font-weight-bold);
 }
 
 .modus-markdown :where(h2) {
-  font-size: 1.4em;
+  font-size: 1.25em;
   font-weight: var(--font-weight-semibold);
 }
 
 .modus-markdown :where(h3) {
-  font-size: 1.15em;
+  font-size: 1.1em;
 }
 
 .modus-markdown :where(h4, h5, h6) {
@@ -1703,7 +1707,7 @@ body
 
 /* Plan documents read like notebook pages, not chat bubbles. */
 .modus-markdown.modus-plan-markdown {
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.55;
 }
 
@@ -1777,7 +1781,7 @@ body
   border-radius: 6px;
   background: var(--color-elevated);
   color: var(--color-fg);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1;
   white-space: nowrap;
   box-shadow:
@@ -1876,19 +1880,6 @@ body
   min-width: 0;
 }
 
-/*
- * Conversation transcript type — ~10% under the global ramp so the reading
- * column is denser than chrome/composer. Applied on the timeline column only
- * (not the composer .chat-column). Heading em sizes in .modus-markdown follow.
- */
-.conversation-type {
-  --text-2xs: calc(11px * var(--ui-scale) * 0.9);
-  --text-xs: calc(12px * var(--ui-scale) * 0.9);
-  --text-sm: calc(13px * var(--ui-scale) * 0.9);
-  --text-md: calc(14px * var(--ui-scale) * 0.9);
-  --text-lg: calc(15px * var(--ui-scale) * 0.9);
-}
-
 /* Floating PDF chrome — frame-select tool + Page N / Total. */
 .pdf-page-chrome {
   position: absolute;
@@ -1905,7 +1896,7 @@ body
   border: 1px solid var(--color-hairline);
   background: color-mix(in srgb, var(--color-elevated) 92%, transparent);
   color: var(--color-fg);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: 0.01em;
   box-shadow:

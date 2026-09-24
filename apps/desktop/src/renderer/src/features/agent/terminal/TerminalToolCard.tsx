@@ -89,11 +89,11 @@ export const TerminalToolCard = memo(
             )}
           >
             <div className="px-3 py-3">
-              <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-fg leading-relaxed">
+              <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs text-fg leading-relaxed">
                 $ {command}
               </pre>
               {hasBody || parsed.truncated ? (
-                <pre className="scroll-thin mt-2 max-h-96 overflow-auto font-mono text-[12px] text-fg-faint leading-relaxed whitespace-pre-wrap wrap-break-word">
+                <pre className="scroll-thin mt-2 max-h-96 overflow-auto font-mono text-xs text-fg-faint leading-relaxed whitespace-pre-wrap wrap-break-word">
                   {parsed.truncated ? "[earlier output truncated]\n" : ""}
                   {cappedBody}
                 </pre>

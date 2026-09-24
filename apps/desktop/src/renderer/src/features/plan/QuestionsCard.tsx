@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import type { QuestionAnswer, QuestionRequest } from "../../../../shared/contracts";
 import { cn } from "../../lib/cn";
+import { ICON, ICON_STROKE } from "../../lib/uiDensity";
 
 /**
  * Codex-style "Questions" card shown above the composer when the agent calls
@@ -172,7 +173,7 @@ export function QuestionsCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-semibold text-[14px] text-fg leading-snug">{active.header}</div>
+          <div className="font-semibold text-md text-fg leading-snug">{active.header}</div>
           {active.detail ? (
             <div className="mt-1 text-fg-subtle text-xs leading-relaxed">{active.detail}</div>
           ) : null}
@@ -186,7 +187,7 @@ export function QuestionsCard({
               onClick={() => goToPage(index - 1)}
               type="button"
             >
-              <IconChevronLeft size={14} stroke={1.8} />
+              <IconChevronLeft size={ICON.sm} stroke={ICON_STROKE.sm} />
             </button>
             <span className="tabular-nums">
               {index + 1} of {questions.length}
@@ -198,7 +199,7 @@ export function QuestionsCard({
               onClick={() => goToPage(index + 1)}
               type="button"
             >
-              <IconChevronRight size={14} stroke={1.8} />
+              <IconChevronRight size={ICON.sm} stroke={ICON_STROKE.sm} />
             </button>
           </div>
         ) : null}
@@ -220,13 +221,13 @@ export function QuestionsCard({
             >
               <span
                 className={cn(
-                  "flex size-[18px] shrink-0 items-center justify-center rounded-full font-semibold text-[11px]",
+                  "flex size-[18px] shrink-0 items-center justify-center rounded-full font-semibold text-2xs",
                   selected ? "bg-build text-build-fg" : "border border-hairline text-fg-faint",
                 )}
               >
                 {optionIndex + 1}
               </span>
-              <span className="flex min-w-0 items-center gap-1.5 text-[13px]">
+              <span className="flex min-w-0 items-center gap-1.5 text-sm">
                 <span className="truncate font-medium text-fg">{option.label}</span>
                 {option.recommended ? (
                   <span className="shrink-0 text-fg-faint text-xs">(Recommended)</span>
@@ -234,15 +235,19 @@ export function QuestionsCard({
                 {option.description ? (
                   <IconInfoCircle
                     className="shrink-0 text-fg-faint"
-                    size={13}
-                    stroke={1.6}
+                    size={ICON.sm}
+                    stroke={ICON_STROKE.sm}
                     title={option.description}
                   />
                 ) : null}
               </span>
               <span className="flex-1" />
               {isCursor ? (
-                <IconSelector className="shrink-0 text-fg-faint/70" size={14} stroke={1.6} />
+                <IconSelector
+                  className="shrink-0 text-fg-faint/70"
+                  size={ICON.sm}
+                  stroke={ICON_STROKE.sm}
+                />
               ) : null}
             </button>
           );
@@ -250,9 +255,9 @@ export function QuestionsCard({
       </div>
 
       <div className="mt-2.5 flex items-center gap-2">
-        <IconPencil className="shrink-0 text-fg-faint" size={14} stroke={1.6} />
+        <IconPencil className="shrink-0 text-fg-faint" size={ICON.sm} stroke={ICON_STROKE.sm} />
         <input
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-fg placeholder:text-fg-faint outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-fg-faint outline-none"
           onChange={(event) => updateDraft(active.id, { custom: event.target.value })}
           placeholder="Or type a different answer…"
           value={draft.custom}
@@ -263,15 +268,15 @@ export function QuestionsCard({
           type="button"
         >
           Dismiss
-          <kbd className="rounded border border-hairline px-1 py-px font-sans text-[10px]">ESC</kbd>
+          <kbd className="rounded border border-hairline px-1 py-px font-sans text-2xs">ESC</kbd>
         </button>
         <button
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-build px-3 py-[6px] font-medium text-[13px] text-build-fg transition-colors hover:bg-build-hover"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-build px-3 py-[6px] font-medium text-sm text-build-fg transition-colors hover:bg-build-hover"
           onClick={primaryAction}
           type="button"
         >
           {isLast ? "Submit" : "Next"}
-          <span className="text-[11px] text-build-fg/60">⏎</span>
+          <span className="text-2xs text-build-fg/60">⏎</span>
         </button>
       </div>
     </div>

@@ -1062,7 +1062,7 @@ export function ChatPane({
                   title="Scroll to latest"
                   type="button"
                 >
-                  <IconArrowDown aria-hidden size={21} stroke={1.9} />
+                  <IconArrowDown aria-hidden size={18} stroke={1.7} />
                 </button>
               </div>
             ) : null}

@@ -112,7 +112,7 @@ export const QuestionToolCard = memo(function QuestionToolCard({
         <div className="mt-1.5 flex flex-col gap-2.5 border-hairline border-l pl-3">
           {pairs.map((pair) => (
             <div className="min-w-0" key={pair.id}>
-              <div className="font-medium text-[13px] text-fg">{pair.header}</div>
+              <div className="font-medium text-sm text-fg">{pair.header}</div>
               <div className="mt-0.5 text-fg-faint text-xs">
                 {pair.answer || "—"}
                 {pair.recommended ? (

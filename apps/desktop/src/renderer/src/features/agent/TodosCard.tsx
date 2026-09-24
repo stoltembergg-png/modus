@@ -46,7 +46,7 @@ export function TodosCard({ todos, updating }: { todos: TodoItem[]; updating: bo
             "shrink-0 text-fg-faint transition-transform duration-150",
             open && "rotate-90",
           )}
-          size={13}
+          size={14}
           stroke={1.7}
         />
       </button>
@@ -102,7 +102,7 @@ function TodoRow({ todo }: { todo: TodoItem }) {
   const { Glyph, iconClass, iconStroke, textClass } = TODO_ROW_STYLES[todo.status];
   return (
     <li className="flex items-start gap-2.5 py-1.5">
-      <Glyph className={cn("mt-0.5 shrink-0", iconClass)} size={15} stroke={iconStroke} />
+      <Glyph className={cn("mt-0.5 shrink-0", iconClass)} size={14} stroke={iconStroke} />
       <span className={cn("min-w-0 flex-1 text-sm leading-snug", textClass)}>{todo.content}</span>
     </li>
   );

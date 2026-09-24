@@ -3,7 +3,7 @@ import { cn } from "../../lib/cn";
 import { Tooltip } from "./Tooltip";
 
 /** Shared chrome toolbar glyph — one size for Inspector / App / sub-toolbars. */
-export const TOOLBAR_ICON = { size: 15, stroke: 1.5 } as const;
+export const TOOLBAR_ICON = { size: 16, stroke: 1.7 } as const;
 
 type ToolbarButtonProps = {
   children: ReactNode;

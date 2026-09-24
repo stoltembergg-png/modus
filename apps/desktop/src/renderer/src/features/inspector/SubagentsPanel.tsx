@@ -14,6 +14,7 @@ import type {
 import { EmptyState } from "../../components/ui/Panel";
 import { VortexMark } from "../../components/ui/VortexMark";
 import { lookupModel, modelIdentityLabel } from "../../lib/modelIdentity";
+import { ICON, ICON_STROKE } from "../../lib/uiDensity";
 import type { AgentEventHub } from "../agent/agentEventHub";
 import { ChatPane } from "../agent/ChatPane";
 import { LineDelta } from "../agent/changes/ChangeStats";
@@ -253,7 +254,7 @@ export function SubagentsPanel({
       <EmptyState
         description="Spawn a subagent from chat to see it here."
         hint="No subagents yet"
-        icon={<IconGridDots size={22} stroke={1.4} />}
+        icon={<IconGridDots size={ICON.lg} stroke={ICON_STROKE.lg} />}
       />
     );
   }
@@ -272,7 +273,7 @@ export function SubagentsPanel({
             }}
             type="button"
           >
-            <IconArrowLeft size={16} stroke={1.7} />
+            <IconArrowLeft size={ICON.md} stroke={ICON_STROKE.md} />
           </button>
           <SubagentProviderMark models={models} session={selected} />
           <div className="min-w-0 flex-1 truncate font-medium text-fg text-sm">
@@ -342,8 +343,8 @@ export function SubagentsPanel({
         <label className="relative block w-full">
           <IconSearch
             className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 text-fg-faint"
-            size={14}
-            stroke={1.7}
+            size={ICON.sm}
+            stroke={ICON_STROKE.sm}
           />
           <input
             className="h-8 w-full rounded-md bg-fill pr-3 pl-8 text-sm outline-none transition-colors placeholder:text-fg-faint focus:bg-canvas"
@@ -359,7 +360,7 @@ export function SubagentsPanel({
           <EmptyState
             className="min-h-[220px]"
             hint="No matching subagents"
-            icon={<IconGridDots size={22} stroke={1.4} />}
+            icon={<IconGridDots size={ICON.lg} stroke={ICON_STROKE.lg} />}
           />
         ) : (
           <SubagentList
@@ -493,7 +494,7 @@ function SubagentWorktreeReviewCard({
     <div className="mb-2 rounded-xl border border-composer-border bg-elevated px-3.5 py-3 shadow-composer-edge">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-semibold text-[14px] text-fg leading-snug">{title}</div>
+          <div className="font-semibold text-md text-fg leading-snug">{title}</div>
           <div className="mt-1 text-fg-subtle text-xs leading-relaxed">{detail}</div>
           <div className="mt-2 truncate font-mono text-2xs text-fg-faint">{worktree.branch}</div>
         </div>
@@ -591,14 +592,14 @@ function WorktreeActionButton({
       type="button"
     >
       <span
-        className={`flex size-[18px] shrink-0 items-center justify-center rounded-full font-semibold text-[11px] ${
+        className={`flex size-[18px] shrink-0 items-center justify-center rounded-full font-semibold text-2xs ${
           recommended ? "bg-build text-build-fg" : "border border-hairline text-fg-faint"
         }`}
       >
         {index}
       </span>
       <span className="min-w-0">
-        <span className="block truncate font-medium text-[13px] text-fg">{label}</span>
+        <span className="block truncate font-medium text-sm text-fg">{label}</span>
         <span className="block truncate text-fg-faint text-xs">{description}</span>
       </span>
     </button>
@@ -625,7 +626,7 @@ function SubagentConflictChoiceCard({
     <div className="mb-2 rounded-xl border border-composer-border bg-elevated px-3.5 py-3 shadow-composer-edge">
       <div className="flex min-w-0 items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-[14px] text-fg leading-snug">
+          <div className="font-semibold text-md text-fg leading-snug">
             Apply paused with merge conflicts
           </div>
           <div className="mt-1 text-fg-subtle text-xs leading-relaxed">
