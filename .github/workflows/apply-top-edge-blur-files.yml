@@ -1,0 +1,58 @@
+name: apply-top-edge-blur-files
+on:
+  push:
+    branches: [cursor/upstream-ui-polish-5588]
+    paths:
+      - ".github/agent-staging/**"
+      - ".github/workflows/apply-top-edge-blur-files.yml"
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/upstream-ui-polish-5588
+      - name: Decode full files, commit, cleanup
+        env:
+          COMMIT_MSG: |
+            fix(ui): top-edge gradient blur instead of full-chat blur
+
+            Per-block filter blur smeared tall messages; use sticky viewport chrome
+            with backdrop-filter + mask so blur is strongest at the top edge only.
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 <<'PY'
+          import base64, gzip
+          from pathlib import Path
+          staging = Path(".github/agent-staging")
+          def load_b64(stem: str) -> bytes:
+              single = staging / f"{stem}.gz.b64"
+              if single.exists():
+                  return base64.b64decode(single.read_text().strip())
+              parts = sorted(staging.glob(f"{stem}.gz.b64.part*"))
+              if not parts:
+                  raise SystemExit(f"missing payload for {stem}")
+              return base64.b64decode("".join(p.read_text().strip() for p in parts))
+          mapping = {
+            "apps/desktop/src/renderer/src/features/agent/Timeline.tsx": "apps__desktop__src__renderer__src__features__agent__Timeline.tsx",
+            "apps/desktop/src/renderer/src/features/agent/ChatPane.tsx": "apps__desktop__src__renderer__src__features__agent__ChatPane.tsx",
+            "apps/desktop/src/renderer/src/styles/app.css": "apps__desktop__src__renderer__src__styles__app.css",
+          }
+          for dest, stem in mapping.items():
+              raw = gzip.decompress(load_b64(stem))
+              Path(dest).write_bytes(raw)
+              print("wrote", dest, len(raw))
+          PY
+          git add \
+            apps/desktop/src/renderer/src/features/agent/Timeline.tsx \
+            apps/desktop/src/renderer/src/features/agent/ChatPane.tsx \
+            apps/desktop/src/renderer/src/styles/app.css
+          printf '%s' "$COMMIT_MSG" | git commit -F -
+          git rm -rf .github/agent-staging
+          git rm -f .github/workflows/apply-top-edge-blur-files.yml
+          git commit -m "chore: remove top-edge-blur file staging"
+          git push
