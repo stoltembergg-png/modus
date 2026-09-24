@@ -1,0 +1,49 @@
+name: apply-chat-scroll-payload
+on:
+  push:
+    branches: [cursor/chat-top-scroll-reveal-5588]
+    paths:
+      - ".github/tmp-chat-scroll/**"
+      - ".github/workflows/apply-chat-scroll-payload.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/chat-top-scroll-reveal-5588
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assemble and commit
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, gzip, json, pathlib, subprocess, os
+          root = pathlib.Path(".github/tmp-chat-scroll")
+          parts = sorted(root.glob("payload.b64.part*"))
+          assert parts, "no parts"
+          b64 = "".join(p.read_text().strip() for p in parts)
+          data = json.loads(gzip.decompress(base64.b64decode(b64)).decode())
+          for path, content in data.items():
+              p = pathlib.Path(path)
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(content)
+              print("wrote", path, len(content))
+          # remove staging + this workflow
+          import shutil
+          shutil.rmtree(".github/tmp-chat-scroll", ignore_errors=True)
+          wf = pathlib.Path(".github/workflows/apply-chat-scroll-payload.yml")
+          if wf.exists():
+              wf.unlink()
+          subprocess.check_call(["git", "config", "user.name", "cursor-agent"])
+          subprocess.check_call(["git", "config", "user.email", "cursor-agent@users.noreply.github.com"])
+          subprocess.check_call(["git", "add", "-A"])
+          # only commit if there are changes
+          st = subprocess.check_output(["git", "status", "--porcelain"]).decode()
+          print("status", st)
+          if st.strip():
+              subprocess.check_call(["git", "commit", "-m", "fix(ui): drop chat top pad and ScrollReveal on scroll"])
+              subprocess.check_call(["git", "push", "origin", "HEAD:cursor/chat-top-scroll-reveal-5588"])
+          PY
