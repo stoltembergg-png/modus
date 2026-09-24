@@ -111,7 +111,7 @@ export function ApprovalPanel({ onDecide, request }: ApprovalPanelProps) {
           </div>
         </div>
 
-        <div className="mt-3 min-w-0 rounded-md border border-hairline-soft bg-code-bg px-3 py-2 font-mono text-[12px] text-fg wrap-break-word">
+        <div className="mt-3 min-w-0 rounded-md border border-hairline-soft bg-code-bg px-3 py-2 font-mono text-xs text-fg wrap-break-word">
           {target}
         </div>
 
@@ -171,7 +171,7 @@ export function ApprovalPanel({ onDecide, request }: ApprovalPanelProps) {
             type="button"
           >
             {submitting ? "Submitting" : "Submit"}
-            <IconCornerDownLeft size={13} stroke={1.8} />
+            <IconCornerDownLeft size={14} stroke={1.8} />
           </button>
         </div>
       </div>

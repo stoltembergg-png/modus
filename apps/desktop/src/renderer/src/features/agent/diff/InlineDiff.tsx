@@ -50,7 +50,7 @@ export const InlineDiffView = memo(function InlineDiffView({ diff, path }: Inlin
   }, [diff.lines, lang, themeMode, ready]);
 
   return (
-    <div className="overflow-x-auto font-mono text-[13px] leading-[22px]">
+    <div className="overflow-x-auto font-mono text-sm leading-[22px]">
       <div className="min-w-full">
         {diff.lines.map((line, index) => (
           <DiffRow
