@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildAcceptLanguageHeader,
-  googleSearchUrl,
-  normalizeLocaleTag,
-} from "./browser-locale";
+import { buildAcceptLanguageHeader, googleSearchUrl, normalizeLocaleTag } from "./browser-locale";
 import { isNavigableUrl, normalizeBrowserUrl, workspacePartition } from "./security";
 
 describe("normalizeBrowserUrl", () => {
