@@ -1,5 +1,5 @@
 import { IconAlertCircle, IconCircleDashed, IconListCheck } from "@tabler/icons-react";
-import { type ReactNode, type RefObject, useMemo } from "react";
+import { Fragment, type ReactNode, type RefObject, useMemo } from "react";
 import type { AgentEventItem } from "../../../../shared/agent-events";
 import type {
   CompactionReason,
@@ -18,9 +18,22 @@ import type {
 import { getToolUiMeta, toolRenderKind } from "../../../../shared/tools";
 import { CopyButton } from "../../components/ui/CopyButton";
 import { ScrollReveal } from "../../components/ui/ScrollReveal";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { formatClock } from "../../lib/formatClock";
+import { formatTokenCount } from "../../lib/tokenUsage";
 import { WorkActivityRow, WorkFold } from "./ActivityGroup";
 import { MessageBlock } from "./MessageBlock";
+import {
+  formatRunDuration,
+  hasPositiveTokenUsage,
+  hasTurnFooterContent,
+  type RunResponseModel,
+  type RunTokenUsage,
+  readRunResponseModel,
+  readRunTokenUsage,
+  resolveRunModelLabel,
+  tokenUsageTotal,
+} from "./runMetadata";
 
 type TimelineProps = {
   /** Blocks built by the owner (ChatPane) — the single authority for this list. */
@@ -118,6 +131,15 @@ export type RunBlockItem = {
   startedAt: number;
   completedAt?: number;
   /**
+   * User message this run answers. The turn footer measures duration from its
+   * send time; absent on history without an associated timestamp.
+   */
+  userMessageId?: string;
+  /** Provider-reported token spend for this run (main run only). */
+  tokenUsage?: RunTokenUsage;
+  /** Effective model the provider reported for this run. */
+  responseModel?: RunResponseModel;
+  /**
    * The whole turn's aggregated assistant markdown, attached once the run
    * settles. The turn footer is the single copy surface for the answer (there
    * is no separate per-message footer), so this powers its "Copy response"
@@ -204,6 +226,25 @@ export type TimelineBlock =
   | WorkFoldBlockItem
   | TodosBlockItem
   | SubagentBlockItem;
+
+/**
+ * Attach the runtime's provider-reported terminal metadata to a settled run
+ * block, when present and well-formed. Absent/partial data stays absent so an
+ * old turn or a terse provider never shows a fabricated zero.
+ */
+function attachRunMetadata(
+  block: RunBlockItem,
+  event: { tokenUsage?: RunTokenUsage; responseModel?: RunResponseModel },
+): void {
+  const tokenUsage = readRunTokenUsage(event.tokenUsage);
+  const responseModel = readRunResponseModel(event.responseModel);
+  if (tokenUsage) {
+    block.tokenUsage = tokenUsage;
+  }
+  if (responseModel) {
+    block.responseModel = responseModel;
+  }
+}
 
 export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
   const blocks: TimelineBlock[] = [];
@@ -330,6 +371,7 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
         status: "running",
         delivery: event.delivery,
         startedAt: eventAt,
+        ...(event.userMessageId ? { userMessageId: event.userMessageId } : {}),
       };
       order++;
       blocks.push(block);
@@ -355,6 +397,7 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
         if (event.summary !== undefined) {
           block.body = event.summary;
         }
+        attachRunMetadata(block, event);
       } else {
         const completedBlock: RunBlockItem = {
           id: event.runId,
@@ -368,6 +411,7 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
         if (event.summary !== undefined) {
           completedBlock.body = event.summary;
         }
+        attachRunMetadata(completedBlock, event);
         blocks.push(completedBlock);
       }
       // Per-turn file stats stay on ChangesStrip above the composer (Review),
@@ -385,8 +429,9 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
         block.body = event.message;
         block.completedAt = eventAt;
         order++;
+        attachRunMetadata(block, event);
       } else {
-        blocks.push({
+        const failedBlock: RunBlockItem = {
           id: event.runId,
           type: "run",
           runId: event.runId,
@@ -394,8 +439,10 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
           body: event.message,
           startedAt: eventAt,
           completedAt: eventAt,
-        });
+        };
         order++;
+        attachRunMetadata(failedBlock, event);
+        blocks.push(failedBlock);
       }
       if (activeRunId === event.runId) {
         activeRunId = undefined;
@@ -435,8 +482,9 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
         block.body = "Stopped by user.";
         block.completedAt = eventAt;
         order++;
+        attachRunMetadata(block, event);
       } else {
-        blocks.push({
+        const cancelledBlock: RunBlockItem = {
           id: event.runId,
           type: "run",
           runId: event.runId,
@@ -444,8 +492,10 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
           body: "Stopped by user.",
           startedAt: eventAt,
           completedAt: eventAt,
-        });
+        };
         order++;
+        attachRunMetadata(cancelledBlock, event);
+        blocks.push(cancelledBlock);
       }
       if (activeRunId === event.runId) {
         activeRunId = undefined;
@@ -532,7 +582,9 @@ export function buildBlocks(agentEvents: AgentEventItem[]): TimelineBlock[] {
 
     if (event.type === "message.completed") {
       const block = blockById.get(event.messageId);
-      if (block?.type === "message") {
+      // Only the assistant adopts its completion time; a user message keeps the
+      // instant it was sent (that is the turn's prompt timestamp).
+      if (block?.type === "message" && block.role === "assistant") {
         block.createdAt = eventAt;
       }
       if (activeAssistantMessageId === event.messageId) {
@@ -1134,23 +1186,118 @@ function Notice({ body, isError = false, title }: NoticeBlockItem) {
   );
 }
 
-function TurnFooter({ turn }: { turn: TimelineTurn }) {
+/** Tooltip body for the token chip — provider-reported, main run only. */
+function tokenUsageTooltip(usage: RunTokenUsage): ReactNode {
+  const row = (label: string, value: number): ReactNode => (
+    <span className="flex items-center justify-between gap-3">
+      <span className="text-fg-muted">{label}</span>
+      <span className="tabular-nums text-fg">{formatTokenCount(value)}</span>
+    </span>
+  );
+  return (
+    <span className="flex min-w-[11rem] flex-col gap-1">
+      <span className="text-fg-faint">Provider-reported · main run</span>
+      {row("Input", usage.input)}
+      {row("Output", usage.output)}
+      {row("Cache read", usage.cacheRead)}
+      {row("Cache write", usage.cacheWrite)}
+      {row("Total", tokenUsageTotal(usage))}
+      <span className="mt-0.5 max-w-[15rem] text-fg-faint">
+        Reasoning is counted inside Output. Excludes subagents and compaction.
+      </span>
+    </span>
+  );
+}
+
+function TurnFooter({ turn, models }: { turn: TimelineTurn; models?: ModelInfo[] }) {
   const fold = turn.blocks.find(({ block }) => block.type === "work-fold")?.block;
-  if (fold?.type !== "work-fold" || !fold.run.answer) {
+  if (fold?.type !== "work-fold") {
     return null;
   }
-  const clock = formatClock(fold.run.completedAt);
-  return (
-    <div className="pointer-events-none flex h-6 w-full items-center gap-1 px-8 opacity-0 transition-opacity duration-150 group-hover/turn:pointer-events-auto group-hover/turn:opacity-100 group-focus-within/turn:pointer-events-auto group-focus-within/turn:opacity-100">
-      <CopyButton label="Copy response" text={fold.run.answer} />
-      {clock && fold.run.completedAt !== undefined ? (
-        <time
-          className="text-2xs text-fg-faint tabular-nums"
-          dateTime={new Date(fold.run.completedAt).toISOString()}
+  const run = fold.run;
+  const answer = run.answer;
+  const usage = hasPositiveTokenUsage(run.tokenUsage) ? run.tokenUsage : undefined;
+  const total = usage ? formatTokenCount(tokenUsageTotal(usage)) : "";
+  const modelLabel = resolveRunModelLabel(models, run.responseModel);
+  // Keep the footer for any real content — Copy is gated on the answer alone.
+  if (!hasTurnFooterContent(answer, usage, modelLabel)) {
+    return null;
+  }
+  const userMessage = turn.blocks.find(
+    ({ block }) => block.type === "message" && block.id === run.userMessageId,
+  )?.block;
+  const userMessageCreatedAt =
+    userMessage && userMessage.type === "message" ? userMessage.createdAt : undefined;
+  const duration = formatRunDuration(run.startedAt, userMessageCreatedAt, run.completedAt);
+  const clock = formatClock(run.completedAt);
+
+  const segments: Array<{ key: string; node: ReactNode }> = [];
+  if (modelLabel) {
+    segments.push({
+      key: "model",
+      node: (
+        <span className="min-w-0 max-w-[14rem] truncate" title={modelLabel}>
+          {modelLabel}
+        </span>
+      ),
+    });
+  }
+  if (usage && total) {
+    segments.push({
+      key: "usage",
+      node: (
+        <Tooltip content={tokenUsageTooltip(usage)}>
+          <button
+            aria-label={`${total} tokens, provider-reported`}
+            className="pointer-events-auto cursor-default rounded-md bg-chip-faint px-1.5 py-0.5 text-fg-subtle tabular-nums"
+            type="button"
+          >
+            {total} tokens
+          </button>
+        </Tooltip>
+      ),
+    });
+  }
+  if (duration) {
+    segments.push({
+      key: "duration",
+      node: (
+        <span
+          className="shrink-0"
+          {...(duration.fromPrompt ? {} : { title: "Run duration; prompt timestamp unavailable" })}
         >
+          {duration.label}
+        </span>
+      ),
+    });
+  }
+  if (clock && run.completedAt !== undefined) {
+    segments.push({
+      key: "clock",
+      node: (
+        <time className="shrink-0 tabular-nums" dateTime={new Date(run.completedAt).toISOString()}>
           {clock}
         </time>
+      ),
+    });
+  }
+
+  return (
+    <div className="pointer-events-none relative flex h-6 w-full min-w-0 items-center gap-1.5 px-8 text-2xs text-fg-faint">
+      {/* Action stays quiet — revealed on hover/focus (and always reachable on
+          coarse pointers). The metadata beside it is always visible. Copy is
+          shown only when the turn actually produced answer text. */}
+      {answer ? (
+        <span className="pointer-events-none absolute top-1/2 left-1 -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/turn:pointer-events-auto group-hover/turn:opacity-100 group-focus-within/turn:pointer-events-auto group-focus-within/turn:opacity-100 pointer-coarse:pointer-events-auto pointer-coarse:opacity-100">
+          <CopyButton label="Copy response" text={answer} />
+        </span>
       ) : null}
+      {segments.map((segment, index) => (
+        <Fragment key={segment.key}>
+          {index > 0 ? <span className="shrink-0 text-fg-faint">·</span> : null}
+          {segment.node}
+        </Fragment>
+      ))}
     </div>
   );
 }
@@ -1284,7 +1431,7 @@ export function Timeline({
                 </TimelineReveal>
               );
             })}
-            <TurnFooter turn={turn} />
+            <TurnFooter {...(models ? { models } : {})} turn={turn} />
           </section>
         ))}
       </div>

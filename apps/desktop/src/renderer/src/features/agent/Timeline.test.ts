@@ -1107,3 +1107,132 @@ describe("segmentTurns", () => {
     expect(turns.map((turn) => turn.key)).toEqual(["repeat", "repeat#2"]);
   });
 });
+
+describe("run response metadata", () => {
+  const usage = {
+    input: 8200,
+    output: 4200,
+    cacheRead: 1000,
+    cacheWrite: 200,
+    totalTokens: 13600,
+  };
+  const responseModel = {
+    provider: "anthropic",
+    model: "claude-sonnet-4-5",
+    responseModel: "claude-sonnet-4-5-20250929",
+  };
+  const runBlock = (blocks: Blocks) => blocks.find((block) => block.type === "run");
+
+  it("carries the run's user message id and terminal metadata", () => {
+    const blocks = buildBlocks([
+      item("1", {
+        type: "run.started",
+        sessionId: "s",
+        runId: "r",
+        userMessageId: "u1",
+        delivery: "normal",
+      }),
+      item("2", {
+        type: "run.completed",
+        sessionId: "s",
+        runId: "r",
+        tokenUsage: usage,
+        responseModel,
+      } as AgentEvent),
+    ]);
+
+    expect(runBlock(blocks)).toEqual(
+      expect.objectContaining({ userMessageId: "u1", tokenUsage: usage, responseModel }),
+    );
+  });
+
+  it("attaches terminal metadata on failed and cancelled runs too", () => {
+    const failed = buildBlocks([
+      item("1", { type: "run.started", sessionId: "s", runId: "r", delivery: "normal" }),
+      item("2", {
+        type: "run.failed",
+        sessionId: "s",
+        runId: "r",
+        message: "boom",
+        tokenUsage: usage,
+      } as AgentEvent),
+    ]);
+    expect(runBlock(failed)).toEqual(expect.objectContaining({ tokenUsage: usage }));
+
+    const cancelled = buildBlocks([
+      item("1", { type: "run.started", sessionId: "s", runId: "r", delivery: "normal" }),
+      item("2", {
+        type: "run.cancelled",
+        sessionId: "s",
+        runId: "r",
+        tokenUsage: usage,
+      } as AgentEvent),
+    ]);
+    expect(runBlock(cancelled)).toEqual(expect.objectContaining({ tokenUsage: usage }));
+  });
+
+  it("omits metadata fields when the runtime sent none", () => {
+    const blocks = buildBlocks([
+      item("1", { type: "run.started", sessionId: "s", runId: "r", delivery: "normal" }),
+      item("2", { type: "run.completed", sessionId: "s", runId: "r" }),
+    ]);
+    const run = runBlock(blocks);
+    expect(run).not.toHaveProperty("tokenUsage");
+    expect(run).not.toHaveProperty("responseModel");
+  });
+
+  it("ignores malformed token usage", () => {
+    // Defensive read: a provider/older payload that slips a non-numeric field
+    // through is dropped rather than rendered.
+    const malformed = {
+      type: "run.completed",
+      sessionId: "s",
+      runId: "r",
+      tokenUsage: { input: "x" },
+    };
+    const blocks = buildBlocks([item("1", malformed as unknown as AgentEvent)]);
+    expect(runBlock(blocks)).not.toHaveProperty("tokenUsage");
+  });
+});
+
+describe("message timestamps", () => {
+  const sent = "2026-07-18T00:00:00.000Z";
+  const done = "2026-07-18T00:00:05.000Z";
+  const messageBlock = (blocks: Blocks) => blocks.find((block) => block.type === "message");
+
+  it("preserves a user message's send time when the message completes", () => {
+    const blocks = buildBlocks([
+      {
+        id: "u1",
+        createdAt: sent,
+        event: { type: "message.started", sessionId: "s", messageId: "u1", role: "user" },
+      },
+      {
+        id: "u1:done",
+        createdAt: done,
+        event: { type: "message.completed", sessionId: "s", messageId: "u1" },
+      },
+    ]);
+    expect(messageBlock(blocks)).toEqual(
+      expect.objectContaining({ role: "user", createdAt: Date.parse(sent) }),
+    );
+  });
+
+  it("lets an assistant message adopt its completion time", () => {
+    const blocks = buildBlocks([
+      {
+        id: "a1",
+        createdAt: sent,
+        event: { type: "message.started", sessionId: "s", messageId: "a1", role: "assistant" },
+      },
+      {
+        id: "a1:done",
+        createdAt: done,
+        event: { type: "message.completed", sessionId: "s", messageId: "a1" },
+      },
+    ]);
+    expect(messageBlock(blocks)).toEqual(
+      expect.objectContaining({ role: "assistant", createdAt: Date.parse(done) }),
+    );
+  });
+});

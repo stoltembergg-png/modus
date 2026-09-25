@@ -12,7 +12,9 @@ import { app, type BrowserWindow as BrowserWindowType } from "electron";
 import { buildContextChips } from "../../shared/context-chips";
 import type {
   AgentEvent,
+  AgentResponseModel,
   AgentRunInfo,
+  AgentRunTokenUsage,
   AgentSessionInfo,
   ContextUsageInfo,
   ModelInfo,
@@ -162,7 +164,19 @@ type RunOutputTracker = {
   runId: string;
   hasVisibleOutput: boolean;
   startedAt: number;
+  tokenUsage: AgentRunTokenUsage;
+  hasReportedUsage: boolean;
+  responseModel?: AgentResponseModel;
 };
+
+export function removeRunOutputTrackerIfOwned<T>(
+  trackers: Map<string, T>,
+  sessionId: string,
+  owner: T,
+): boolean {
+  if (trackers.get(sessionId) !== owner) return false;
+  return trackers.delete(sessionId);
+}
 
 /**
  * Minimum gap between live `tool.delta` emissions per session. Caps the IPC/
@@ -346,6 +360,60 @@ export class PiSdkRuntime implements AgentRuntime {
     }
   }
 
+  private noteAssistantResponseUsage(sessionId: string, event: unknown): void {
+    if (!event || typeof event !== "object") return;
+    const raw = event as {
+      type?: unknown;
+      message?: {
+        role?: unknown;
+        usage?: Partial<AgentRunTokenUsage>;
+        provider?: unknown;
+        model?: unknown;
+        responseModel?: unknown;
+      };
+    };
+    if (raw.type !== "message_end" || raw.message?.role !== "assistant") return;
+    const tracker = this.runOutputTrackers.get(sessionId);
+    if (!tracker) return;
+
+    const usage = raw.message.usage;
+    if (usage) {
+      const fields: (keyof AgentRunTokenUsage)[] = [
+        "input",
+        "output",
+        "cacheRead",
+        "cacheWrite",
+        "totalTokens",
+      ];
+      for (const field of fields) {
+        const value = usage[field];
+        if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+          tracker.tokenUsage[field] += value;
+          tracker.hasReportedUsage = true;
+        }
+      }
+    }
+    if (typeof raw.message.provider === "string" && typeof raw.message.model === "string") {
+      tracker.responseModel = {
+        provider: raw.message.provider,
+        model: raw.message.model,
+        ...(typeof raw.message.responseModel === "string"
+          ? { responseModel: raw.message.responseModel }
+          : {}),
+      };
+    }
+  }
+
+  private runResponseMetadata(tracker: RunOutputTracker): {
+    tokenUsage?: AgentRunTokenUsage;
+    responseModel?: AgentResponseModel;
+  } {
+    return {
+      ...(tracker.hasReportedUsage ? { tokenUsage: tracker.tokenUsage } : {}),
+      ...(tracker.responseModel ? { responseModel: tracker.responseModel } : {}),
+    };
+  }
+
   private emitContextUsage(runtimeSession: SdkRuntimeSession): void {
     const event = createContextUsageEvent(runtimeSession.info.id, runtimeSession.session);
     if (event) {
@@ -513,6 +581,7 @@ export class PiSdkRuntime implements AgentRuntime {
       params.emitVolatile(event);
     };
     const sessionUnsubscribe = session.subscribe((event) => {
+      this.noteAssistantResponseUsage(params.info.id, event);
       for (const normalized of normalizePiEvent(event)) {
         if (normalized.type === "tool.delta" || normalized.type === "tool.started") {
           const hiddenProfiles = toolRegistry.getEntry(normalized.toolName)?.ui
@@ -807,6 +876,17 @@ export class PiSdkRuntime implements AgentRuntime {
       await this.enqueueTurnMessage(runtimeSession, input, delivery, toolContext);
       return;
     }
+    if (
+      delivery === "normal" &&
+      runtimeSession.session.isStreaming &&
+      this.runOutputTrackers.has(input.sessionId)
+    ) {
+      // Normal prompts publish their user message before loading the session.
+      // Join the already-owned turn as a follow-up without emitting that message
+      // a second time or opening a competing run/tracker.
+      await this.enqueueTurnMessage(runtimeSession, input, "follow-up", toolContext, false);
+      return;
+    }
 
     if (
       !runtimeSession.info.parentSessionId &&
@@ -835,6 +915,8 @@ export class PiSdkRuntime implements AgentRuntime {
       runId: run.id,
       hasVisibleOutput: false,
       startedAt: Date.now(),
+      tokenUsage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 },
+      hasReportedUsage: false,
     };
     this.runOutputTrackers.set(input.sessionId, outputTracker);
 
@@ -972,6 +1054,7 @@ export class PiSdkRuntime implements AgentRuntime {
             sessionId: input.sessionId,
             runId: run.id,
             message: turnError,
+            ...this.runResponseMetadata(outputTracker),
           });
           if (input.planId) {
             this.transitionPlanBuild(runtimeSession, input.planId, "not_built");
@@ -997,6 +1080,7 @@ export class PiSdkRuntime implements AgentRuntime {
             sessionId: input.sessionId,
             runId: run.id,
             ...(changes && changes.fileCount > 0 ? { changes } : {}),
+            ...this.runResponseMetadata(outputTracker),
           });
           // The build turn completed cleanly → the plan is built.
           if (input.planId) {
@@ -1013,6 +1097,7 @@ export class PiSdkRuntime implements AgentRuntime {
             sessionId: input.sessionId,
             runId: run.id,
             message,
+            ...this.runResponseMetadata(outputTracker),
           });
           runtimeSession.emit({ type: "runtime.error", sessionId: input.sessionId, message });
           if (input.planId) {
@@ -1036,7 +1121,12 @@ export class PiSdkRuntime implements AgentRuntime {
       if (this.cancellingRuns.has(run.id)) {
         await captureTurnEnd();
         updateAgentRunStatus(run.id, "cancelled");
-        runtimeSession.emit({ type: "run.cancelled", sessionId: input.sessionId, runId: run.id });
+        runtimeSession.emit({
+          type: "run.cancelled",
+          sessionId: input.sessionId,
+          runId: run.id,
+          ...this.runResponseMetadata(outputTracker),
+        });
         return;
       }
       await captureTurnEnd();
@@ -1051,6 +1141,7 @@ export class PiSdkRuntime implements AgentRuntime {
         sessionId: input.sessionId,
         runId: run.id,
         message: error instanceof Error ? error.message : String(error),
+        ...this.runResponseMetadata(outputTracker),
       });
       runtimeSession.emit({
         type: "runtime.error",
@@ -1060,7 +1151,7 @@ export class PiSdkRuntime implements AgentRuntime {
       throw error;
     } finally {
       await captureTurnEnd();
-      this.runOutputTrackers.delete(input.sessionId);
+      removeRunOutputTrackerIfOwned(this.runOutputTrackers, input.sessionId, outputTracker);
       console.info(
         `[modus-timing] turn end (idle emit) +${Date.now() - outputTracker.startedAt}ms`,
       );
@@ -1191,9 +1282,10 @@ export class PiSdkRuntime implements AgentRuntime {
     input: PromptAgentInput,
     delivery: NonNullable<PromptAgentInput["delivery"]>,
     toolContext: AgentToolContext,
+    emitUserMessage = true,
   ): Promise<void> {
     const userMessageId = input.userMessageId ?? `local-user:${randomUUID()}`;
-    this.emitUserMessage(runtimeSession.emit, input, userMessageId);
+    if (emitUserMessage) this.emitUserMessage(runtimeSession.emit, input, userMessageId);
     try {
       const message = await this.composeTurnMessage(runtimeSession, input);
       const images = buildTurnImages(input);

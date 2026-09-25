@@ -96,26 +96,6 @@ function toolTarget(item: Extract<WorkActivityItem, { type: "tool" }>): string |
 
 const thoughtText = (text: string) => text.trim().replace(/\s+/g, " ");
 
-const MAX_THOUGHT_STEPS = 4;
-
-function collectThoughtSteps(items: WorkFoldItem[]): string[] {
-  const steps: string[] = [];
-  for (const item of items) {
-    if (item.type === "thought") {
-      const preview = thoughtText(item.text);
-      if (preview) steps.push(preview);
-    } else if (item.type === "work-activity-group") {
-      for (const activity of item.items) {
-        if (activity.type !== "thought") continue;
-        const preview = thoughtText(activity.text);
-        if (preview) steps.push(preview);
-      }
-    }
-    if (steps.length >= MAX_THOUGHT_STEPS) break;
-  }
-  return steps.slice(0, MAX_THOUGHT_STEPS);
-}
-
 function isActivityActive(item: GroupedWorkActivityItem): boolean {
   if (item.type === "thought") return item.streaming === true;
   if (item.type === "tool") return item.isComplete !== true && item.isError !== true;
@@ -393,7 +373,6 @@ export const WorkFold = memo(function WorkFold({
       : run.status === "cancelled"
         ? "Stopped by you"
         : null;
-  const thoughtSteps = collectThoughtSteps(items);
   // Real phase labels that swap in the header as events arrive (never a timer).
   const phaseLabel = workFoldPhaseLabel(items) ?? "Working…";
 
@@ -402,7 +381,6 @@ export const WorkFold = memo(function WorkFold({
       <div className="flex min-w-0 items-start gap-1.5">
         <ThoughtLine
           className="min-w-0"
-          collapseOnSettle
           color="var(--color-fg-subtle)"
           doneLabel={terminal ?? "Worked for"}
           elapsed={elapsedSeconds}
@@ -410,7 +388,6 @@ export const WorkFold = memo(function WorkFold({
           label="Working…"
           renderLabel={(text, working) => (working ? <PhaseSwapLabel label={phaseLabel} /> : text)}
           showTimer={!terminal}
-          steps={thoughtSteps}
           working={active}
         />
         <button
