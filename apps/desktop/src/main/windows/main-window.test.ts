@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -88,7 +89,7 @@ describe("main window renderer target and redirects", () => {
 
     expect(electronState.loadURL).not.toHaveBeenCalled();
     expect(electronState.loadFile).toHaveBeenCalledWith(
-      expect.stringContaining("renderer\\index.html"),
+      expect.stringContaining(join("renderer", "index.html")),
     );
   });
 
