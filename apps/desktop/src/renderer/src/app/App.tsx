@@ -856,7 +856,9 @@ export function App() {
                   {settingsOpen ? (
                     <Suspense fallback={<ModusLoadingFallback />}>
                       <SettingsPanel
-                        {...(settingsInitialSection ? { initialSection: settingsInitialSection } : {})}
+                        {...(settingsInitialSection
+                          ? { initialSection: settingsInitialSection }
+                          : {})}
                         onClose={() => setSettingsOpen(false)}
                         onRefresh={refreshModelSettings}
                         onRefreshCatalog={refreshModelCatalog}

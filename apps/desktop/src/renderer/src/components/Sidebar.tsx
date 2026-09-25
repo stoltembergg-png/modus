@@ -349,10 +349,7 @@ export function Sidebar({
         </div>
 
         <div className="app-no-drag px-2 pt-1 pb-2">
-          <NavRow
-            icon={<IconGauge size={SB_ICON} stroke={SB_STROKE} />}
-            onClick={onOpenLimits}
-          >
+          <NavRow icon={<IconGauge size={SB_ICON} stroke={SB_STROKE} />} onClick={onOpenLimits}>
             Limits
           </NavRow>
           <NavRow

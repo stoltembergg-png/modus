@@ -91,9 +91,23 @@ describe("IPC schemas", () => {
   });
 
   it("accepts only the explicit Codex limits boolean and rejects extra inputs", () => {
-    expect(parseIpcInput(limitsCodexEnabledSchema, { enabled: true }, "model:limits-set-codex-enabled")).toEqual({ enabled: true });
-    expect(() => parseIpcInput(limitsCodexEnabledSchema, { enabled: "true" }, "model:limits-set-codex-enabled")).toThrow("Invalid IPC payload");
-    expect(() => parseIpcInput(limitsCodexEnabledSchema, { enabled: true, provider: "x" }, "model:limits-set-codex-enabled")).toThrow("Invalid IPC payload");
+    expect(
+      parseIpcInput(limitsCodexEnabledSchema, { enabled: true }, "model:limits-set-codex-enabled"),
+    ).toEqual({ enabled: true });
+    expect(() =>
+      parseIpcInput(
+        limitsCodexEnabledSchema,
+        { enabled: "true" },
+        "model:limits-set-codex-enabled",
+      ),
+    ).toThrow("Invalid IPC payload");
+    expect(() =>
+      parseIpcInput(
+        limitsCodexEnabledSchema,
+        { enabled: true, provider: "x" },
+        "model:limits-set-codex-enabled",
+      ),
+    ).toThrow("Invalid IPC payload");
   });
 
   it("leaves per-turn params undefined when omitted (keeps session defaults)", () => {

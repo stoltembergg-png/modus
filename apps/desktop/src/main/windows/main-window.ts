@@ -25,7 +25,11 @@ function isExternalUrlAllowed(rawUrl: string): boolean {
   }
 }
 
-function resolveRendererTarget(packaged: boolean, configuredUrl: string | undefined, packagedUrl: string): {
+function resolveRendererTarget(
+  packaged: boolean,
+  configuredUrl: string | undefined,
+  packagedUrl: string,
+): {
   url: string;
   isDevServer: boolean;
 } {
