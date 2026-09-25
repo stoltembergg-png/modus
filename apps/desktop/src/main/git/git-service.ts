@@ -22,7 +22,14 @@ import type {
 } from "../../shared/contracts";
 import { GitError, messageForCode } from "./git-errors";
 import { resolveRepo } from "./git-repo";
-import { isIndexLocked, resolveUserPath, runGit, runGitSafe, runGitSafeRaw, type RunGitOptions } from "./git-runner";
+import {
+  isIndexLocked,
+  type RunGitOptions,
+  resolveUserPath,
+  runGit,
+  runGitSafe,
+  runGitSafeRaw,
+} from "./git-runner";
 
 /**
  * Thin shim over the hardened runner (`git-runner.ts`), preserving the historical

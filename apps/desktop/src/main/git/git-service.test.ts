@@ -1,11 +1,12 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { runGitSafe } from "./git-runner";
 import {
   abortSubagentWorktreeApply,
   applySubagentWorktree,
@@ -33,7 +34,6 @@ import {
   stageFile,
   unstageFile,
 } from "./git-service";
-import { runGitSafe } from "./git-runner";
 
 const execFileAsync = promisify(execFile);
 const getTestGitMemoryContext = createGitMemoryContextReader(runGitSafe, 2_000);
@@ -61,7 +61,7 @@ afterEach(async () => {
 describe("git-service", () => {
   it("collects branch, full HEAD, and all porcelain-v2 path forms in one Git invocation", async () => {
     const fullHead = "0123456789abcdef0123456789abcdef01234567";
-    const output = [
+    const output = `${[
       `# branch.oid ${fullHead}`,
       "# branch.head feature/memory-context",
       "1 .M N... 100644 100644 100644 abc abc file with spaces.ts",
@@ -69,7 +69,7 @@ describe("git-service", () => {
       "original name.ts",
       "? untracked file.ts",
       "u UU N... 100644 100644 100644 100644 aaa bbb ccc conflict file.ts",
-    ].join("\0") + "\0";
+    ].join("\0")}\0`;
     const calls: string[][] = [];
     const reader = createGitMemoryContextReader(async (_cwd, args) => {
       calls.push(args);
@@ -155,7 +155,11 @@ describe("git-service", () => {
   });
 
   it("does not mutate partial metadata if a timed-out runner completes later", async () => {
-    const lateStatus = [`# branch.oid ${"d".repeat(40)}`, "# branch.head feature/partial", "? late-status.txt"].join("\0") + "\0";
+    const lateStatus = `${[
+      `# branch.oid ${"d".repeat(40)}`,
+      "# branch.head feature/partial",
+      "? late-status.txt",
+    ].join("\0")}\0`;
     const reader = createGitMemoryContextReader(async () => {
       await new Promise((resolve) => setTimeout(resolve, 45));
       return lateStatus;
