@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { BrowserEvent } from "../../../../shared/contracts";
-import { designEventToPromptInput } from "./ChatPane";
+import { type BrowserEvent, CHATS_WORKSPACE_ID } from "../../../../shared/contracts";
+import { canSubmitPromptForSession, designEventToPromptInput } from "./ChatPane";
+
+describe("canSubmitPromptForSession", () => {
+  it("allows a model-configured Inbox session when its workspace is intentionally unlisted", () => {
+    expect(canSubmitPromptForSession(null, CHATS_WORKSPACE_ID, "provider/model")).toBe(true);
+    expect(canSubmitPromptForSession(null, "missing-workspace", "provider/model")).toBe(false);
+    expect(canSubmitPromptForSession(null, CHATS_WORKSPACE_ID, undefined)).toBe(false);
+  });
+});
 
 describe("designEventToPromptInput", () => {
   it("keeps design chips, typed text, context, and screenshot together", () => {

@@ -255,6 +255,20 @@ export type SubagentActivity =
 
 export type SubagentStatus = "running" | "completed" | "failed" | "blocked" | "cancelled";
 
+export type AgentRunTokenUsage = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  totalTokens: number;
+};
+
+export type AgentResponseModel = {
+  provider: string;
+  model: string;
+  responseModel?: string;
+};
+
 export type AgentEvent =
   | { type: "agent.started"; sessionId: string }
   | { type: "agent.ended"; sessionId: string }
@@ -272,10 +286,25 @@ export type AgentEvent =
       summary?: string;
       /** What this turn changed on disk (vs the pre-run snapshot). */
       changes?: WorkingChangeStats;
+      tokenUsage?: AgentRunTokenUsage;
+      responseModel?: AgentResponseModel;
     }
-  | { type: "run.failed"; sessionId: string; runId: string; message: string }
+  | {
+      type: "run.failed";
+      sessionId: string;
+      runId: string;
+      message: string;
+      tokenUsage?: AgentRunTokenUsage;
+      responseModel?: AgentResponseModel;
+    }
   | { type: "run.blocked"; sessionId: string; runId: string; requestId: string; reason: string }
-  | { type: "run.cancelled"; sessionId: string; runId: string }
+  | {
+      type: "run.cancelled";
+      sessionId: string;
+      runId: string;
+      tokenUsage?: AgentRunTokenUsage;
+      responseModel?: AgentResponseModel;
+    }
   | {
       type: "message.started";
       sessionId: string;

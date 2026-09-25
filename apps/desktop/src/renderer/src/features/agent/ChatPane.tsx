@@ -20,6 +20,7 @@ import type {
   WorkingChangeStats,
   WorkspaceInfo,
 } from "../../../../shared/contracts";
+import { CHATS_WORKSPACE_ID } from "../../../../shared/contracts";
 import { VortexMark } from "../../components/ui/VortexMark";
 import { lookupModel } from "../../lib/modelIdentity";
 import {
@@ -66,6 +67,14 @@ import { WorkingSubagentBar } from "./WorkingSubagentBar";
 /**
  * Full conversation surface bound to one active session.
  */
+
+export function canSubmitPromptForSession(
+  workspace: WorkspaceInfo | null,
+  sessionWorkspaceId: string,
+  modelId: string | undefined,
+): boolean {
+  return Boolean(modelId) && (Boolean(workspace) || sessionWorkspaceId === CHATS_WORKSPACE_ID);
+}
 
 type ChatPaneProps = {
   session: AgentSessionInfo;
@@ -1129,7 +1138,11 @@ export function ChatPane({
                       }
                     >
                       <Composer
-                        canSubmit={Boolean(workspace) && Boolean(paneModel)}
+                        canSubmit={canSubmitPromptForSession(
+                          workspace,
+                          session.workspaceId,
+                          paneModel,
+                        )}
                         contextItems={contextItems}
                         cwd={activeCwd}
                         draft={{

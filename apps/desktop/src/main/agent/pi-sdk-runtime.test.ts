@@ -133,7 +133,7 @@ vi.mock("./model-service", () => ({
 }));
 
 const { getDatabase } = await import("../db/database");
-const { PiSdkRuntime } = await import("./pi-sdk-runtime");
+const { PiSdkRuntime, removeRunOutputTrackerIfOwned } = await import("./pi-sdk-runtime");
 const { toolRegistry } = await import("./tools/registry");
 const { deleteAgentSessionTree } = await import("./session-lifecycle");
 const { recordAgentEvent } = await import("./agent-event-store");
@@ -269,6 +269,172 @@ afterAll(async () => {
 });
 
 describe("PiSdkRuntime", () => {
+  it("removes a run output tracker only when that run still owns the session entry", () => {
+    const trackerA = { runId: "run-a" };
+    const trackerB = { runId: "run-b" };
+    const trackers = new Map([["session", trackerB]]);
+
+    expect(removeRunOutputTrackerIfOwned(trackers, "session", trackerA)).toBe(false);
+    expect(trackers.get("session")).toBe(trackerB);
+    expect(removeRunOutputTrackerIfOwned(trackers, "session", trackerB)).toBe(true);
+    expect(trackers.has("session")).toBe(false);
+  });
+
+  it("includes aggregated assistant response usage and model on the completed run", async () => {
+    const sessionId = `session-${crypto.randomUUID()}`;
+    insertSession(sessionId, `workspace-${crypto.randomUUID()}`, join(userData, "missing.jsonl"));
+    const assistantResponse = (usage: Record<string, number>, responseModel: string) => ({
+      role: "assistant",
+      provider: "mock-provider",
+      model: "configured-model",
+      responseModel,
+      usage,
+    });
+    const session = createMockPiSession({
+      prompt: vi.fn(async () => {
+        mocks.emitPiEvent({
+          type: "message_end",
+          message: assistantResponse(
+            { input: 10, output: 2, cacheRead: 3, cacheWrite: 1, totalTokens: 16 },
+            "actual-model-1",
+          ),
+        });
+        mocks.emitPiEvent({
+          type: "message_end",
+          message: {
+            role: "tool",
+            usage: { input: 100, output: 100, cacheRead: 0, cacheWrite: 0, totalTokens: 200 },
+          },
+        });
+        mocks.emitPiEvent({
+          type: "message_end",
+          message: assistantResponse(
+            { input: 4, output: 5, cacheRead: 6, cacheWrite: 2, totalTokens: 17 },
+            "actual-model-2",
+          ),
+        });
+        mocks.emitPiEvent({
+          type: "message_update",
+          message: { role: "assistant" },
+          assistantMessageEvent: { type: "text_delta", delta: "done" },
+        });
+      }),
+    });
+    mocks.createAgentSession.mockImplementationOnce(async () => ({ session }));
+
+    await new PiSdkRuntime().prompt(createWindowStub(), {
+      context: [],
+      delivery: "normal",
+      message: "hello",
+      sessionId,
+      userMessageId: "user-message",
+    });
+
+    const row = getDatabase()
+      .prepare(
+        "select payload_json from agent_events where session_id = ? and type = 'run.completed'",
+      )
+      .get(sessionId) as { payload_json: string };
+    expect(JSON.parse(row.payload_json)).toMatchObject({
+      tokenUsage: { input: 14, output: 7, cacheRead: 9, cacheWrite: 3, totalTokens: 33 },
+      responseModel: {
+        provider: "mock-provider",
+        model: "configured-model",
+        responseModel: "actual-model-2",
+      },
+    });
+  });
+
+  it("queues an overlapping normal prompt into the active run without losing its metadata", async () => {
+    const sessionId = `session-${crypto.randomUUID()}`;
+    insertSession(sessionId, `workspace-${crypto.randomUUID()}`, join(userData, "missing.jsonl"));
+    let notifyFirstPromptStarted!: () => void;
+    const firstPromptStarted = new Promise<void>((resolve) => {
+      notifyFirstPromptStarted = resolve;
+    });
+    let releaseFirstPrompt!: () => void;
+    const firstPromptGate = new Promise<void>((resolve) => {
+      releaseFirstPrompt = resolve;
+    });
+    let promptCalls = 0;
+    const session = createMockPiSession({
+      isStreaming: false,
+      prompt: vi.fn(async (_message: string, options?: { streamingBehavior?: string }) => {
+        promptCalls += 1;
+        if (promptCalls === 1) {
+          session.isStreaming = true;
+          mocks.emitPiEvent({
+            type: "message_end",
+            message: {
+              role: "assistant",
+              provider: "provider-one",
+              model: "model-one",
+              usage: { input: 10, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 12 },
+            },
+          });
+          mocks.emitPiEvent({
+            type: "message_update",
+            message: { role: "assistant" },
+            assistantMessageEvent: { type: "text_delta", delta: "first response" },
+          });
+          notifyFirstPromptStarted();
+          await firstPromptGate;
+          session.isStreaming = false;
+          return;
+        }
+
+        expect(options?.streamingBehavior).toBe("followUp");
+        mocks.emitPiEvent({
+          type: "message_end",
+          message: {
+            role: "assistant",
+            provider: "provider-two",
+            model: "model-two",
+            usage: { input: 5, output: 6, cacheRead: 0, cacheWrite: 2, totalTokens: 13 },
+          },
+        });
+      }),
+    });
+    mocks.createAgentSession.mockImplementationOnce(async () => ({ session }));
+    const runtime = new PiSdkRuntime();
+    const window = createWindowStub();
+    const firstPrompt = runtime.prompt(window, {
+      context: [],
+      delivery: "normal",
+      message: "first",
+      sessionId,
+      userMessageId: "user-one",
+    });
+    await firstPromptStarted;
+
+    await runtime.prompt(window, {
+      context: [],
+      delivery: "normal",
+      message: "second",
+      sessionId,
+      userMessageId: "user-two",
+    });
+    releaseFirstPrompt();
+    await firstPrompt;
+
+    const events = getDatabase()
+      .prepare("select type, payload_json from agent_events where session_id = ? order by rowid")
+      .all(sessionId) as Array<{ type: string; payload_json: string }>;
+    const runsStarted = events.filter(({ type }) => type === "run.started");
+    const runsCompleted = events.filter(({ type }) => type === "run.completed");
+    const userMessages = events.filter(({ type }) => type === "message.started");
+    expect(runsStarted).toHaveLength(1);
+    expect(runsCompleted).toHaveLength(1);
+    expect(userMessages).toHaveLength(2);
+    const completedPayload = runsCompleted[0]?.payload_json;
+    expect(completedPayload).toBeDefined();
+    expect(JSON.parse(completedPayload ?? "{}")).toMatchObject({
+      tokenUsage: { input: 15, output: 8, cacheRead: 0, cacheWrite: 2, totalTokens: 25 },
+      responseModel: { provider: "provider-two", model: "model-two" },
+    });
+    expect(promptCalls).toBe(2);
+  });
+
   it("registers task and wait for same-turn background work", () => {
     new PiSdkRuntime();
 
