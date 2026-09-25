@@ -20,6 +20,7 @@ const api: ModusApi = {
     open: () => ipcRenderer.invoke("workspace:open"),
     list: () => ipcRenderer.invoke("workspace:list"),
     ensureChats: () => ipcRenderer.invoke("workspace:ensure-chats"),
+    select: (input) => ipcRenderer.invoke("workspace:select", input),
     pin: (input) => ipcRenderer.invoke("workspace:pin", input),
     rename: (input) => ipcRenderer.invoke("workspace:rename", input),
     archiveChats: (id) => ipcRenderer.invoke("workspace:archive-chats", { id }),
@@ -177,6 +178,13 @@ const api: ModusApi = {
     list: (workspaceId) => ipcRenderer.invoke("docs:list", workspaceId),
     add: (input) => ipcRenderer.invoke("docs:add", input),
     search: (input) => ipcRenderer.invoke("docs:search", input),
+  },
+  projectMemory: {
+    snapshot: (input) => ipcRenderer.invoke("project-memory:snapshot", input),
+    setEnabled: (input) => ipcRenderer.invoke("project-memory:set-enabled", input),
+    verify: (input) => ipcRenderer.invoke("project-memory:verify", input),
+    markObsolete: (input) => ipcRenderer.invoke("project-memory:mark-obsolete", input),
+    delete: (input) => ipcRenderer.invoke("project-memory:delete", input),
   },
   model: {
     list: () => ipcRenderer.invoke("model:list"),

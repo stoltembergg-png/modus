@@ -13,6 +13,25 @@ import {
 } from "./agent-store";
 import { deleteSessionCheckpoints } from "./checkpoint-service";
 import { getAgentRuntime } from "./runtime-registry";
+import { listAgentRuns } from "./agent-run-store";
+import { finalizeProjectMemoryRun } from "../memory/project-memory-service";
+
+/** Best-effort explicit-close/archive sweep; running and blocked runs are not completion signals. */
+function finalizeTerminalProjectMemoryRuns(sessionId: string): void {
+  try {
+    for (const run of listAgentRuns(sessionId)) {
+      if (run.status === "completed" || run.status === "failed" || run.status === "cancelled") {
+        try {
+          finalizeProjectMemoryRun({ sessionId, runId: run.id, outcome: run.status });
+        } catch {
+          console.warn("[modus] Project Memory lifecycle finalization failed.");
+        }
+      }
+    }
+  } catch {
+    console.warn("[modus] Project Memory lifecycle sweep failed.");
+  }
+}
 
 /**
  * Fully delete one agent session: stop+drop its live runtime, release the
@@ -27,6 +46,7 @@ export async function deleteAgentSessionTree(sessionId: string): Promise<void> {
     await deleteAgentSessionTree(child.id);
   }
   await getAgentRuntime().dispose(sessionId);
+  finalizeTerminalProjectMemoryRuns(sessionId);
   const session = getAgentSession(sessionId);
   if (session) {
     await deleteSessionCheckpoints(sessionId, session.cwd).catch(() => {});
@@ -44,6 +64,7 @@ export async function setAgentSessionArchivedTree(
   for (const child of listSubagentSessions(sessionId)) {
     await setAgentSessionArchivedTree(child.id, archived);
   }
+  if (archived) finalizeTerminalProjectMemoryRuns(sessionId);
   setAgentSessionArchived(sessionId, archived);
 }
 

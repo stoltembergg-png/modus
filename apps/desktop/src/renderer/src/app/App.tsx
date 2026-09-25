@@ -109,6 +109,7 @@ export function App() {
   const [securityState, setSecurityState] = useState<SecurityState | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceInfo | null>(null);
+  const [synchronizedWorkspaceId, setSynchronizedWorkspaceId] = useState<string | undefined>();
   const [agentSessions, setAgentSessions] = useState<AgentSessionInfo[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [initialEventsBySession, setInitialEventsBySession] = useState<
@@ -149,6 +150,7 @@ export function App() {
   const hubRef = useRef(new AgentEventHub());
   const activeSessionIdRef = useRef<string | undefined>(undefined);
   const activeWorkspaceRef = useRef<WorkspaceInfo | null>(null);
+  const workspaceSelectionRevisionRef = useRef(0);
   const reviewScopeRef = useRef<{
     sessionId: string | undefined;
     workspaceId: string | undefined;
@@ -181,6 +183,28 @@ export function App() {
   useEffect(() => {
     activeWorkspaceRef.current = activeWorkspace;
   }, [activeWorkspace]);
+
+  const requestedWorkspaceId =
+    activeWorkspace && !activeWorkspace.inbox ? activeWorkspace.id : undefined;
+
+  useEffect(() => {
+    if (!window.modus) return;
+    const revision = ++workspaceSelectionRevisionRef.current;
+    const workspaceId = requestedWorkspaceId;
+    setSynchronizedWorkspaceId(undefined);
+    void window.modus.workspace
+      .select(workspaceId ? { workspaceId } : {})
+      .then(() => {
+        if (revision === workspaceSelectionRevisionRef.current) {
+          setSynchronizedWorkspaceId(workspaceId);
+        }
+      })
+      .catch((error: unknown) => {
+        if (revision === workspaceSelectionRevisionRef.current) {
+          console.error("Unable to synchronize the current workspace selection.", error);
+        }
+      });
+  }, [requestedWorkspaceId]);
 
   // When the agent starts driving the browser (an agent-initiated navigation),
   // auto-reveal the browser panel for the active workspace if it isn't already
@@ -864,6 +888,11 @@ export function App() {
                         onRefreshCatalog={refreshModelCatalog}
                         state={modelSettings}
                         workspaces={workspaces}
+                        workspaceId={
+                          requestedWorkspaceId && synchronizedWorkspaceId === requestedWorkspaceId
+                            ? requestedWorkspaceId
+                            : undefined
+                        }
                         workspaceCwd={activeWorkspace?.rootPath}
                       />
                     </Suspense>

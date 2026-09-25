@@ -6,6 +6,7 @@ import type {
   AgentSessionInfo,
   ContextItem,
   ModelInfo,
+  ProjectMemoryCategory,
   PromptDelivery,
   PromptImageAttachment,
   SkillSelection,
@@ -114,7 +115,14 @@ export type BackgroundWaitResult = {
     task: string;
     status: "running" | "completed" | "error" | "missing";
     output?: string;
+    memoryCandidates?: WaitMemoryCandidateSummary[];
   }>;
+};
+
+export type WaitMemoryCandidateSummary = {
+  id: string;
+  category: ProjectMemoryCategory;
+  claim: string;
 };
 
 export type EmitAgentEvent = (event: AgentEvent) => void;

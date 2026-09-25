@@ -11,6 +11,7 @@ export const IPC_CHANNELS = {
   workspaceDeleteChats: "workspace:delete-chats",
   workspaceRemove: "workspace:remove",
   workspaceReveal: "workspace:reveal",
+  workspaceSelect: "workspace:select",
   fileOpen: "file:open",
   agentCreate: "agent:create",
   agentList: "agent:list",
@@ -158,6 +159,11 @@ export const IPC_CHANNELS = {
   windowStateEvent: "window:state-event",
   clipboardWriteImage: "clipboard:write-image",
   dialogSaveImage: "dialog:save-image",
+  projectMemorySnapshot: "project-memory:snapshot",
+  projectMemorySetEnabled: "project-memory:set-enabled",
+  projectMemoryVerify: "project-memory:verify",
+  projectMemoryMarkObsolete: "project-memory:mark-obsolete",
+  projectMemoryDelete: "project-memory:delete",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   abortSubagentWorktreeApply,
@@ -11,11 +12,13 @@ import {
   checkoutBranch,
   cleanupSubagentWorktree,
   commitOrPush,
+  createGitMemoryContextReader,
   createSubagentWorktree,
   defaultBranch,
   discardUnstagedFile,
   finishSubagentWorktree,
   getChangeStatsSince,
+  getGitMemoryContext,
   getStatusSummary,
   getWorkingChangeStats,
   initRepository,
@@ -30,8 +33,10 @@ import {
   stageFile,
   unstageFile,
 } from "./git-service";
+import { runGitSafe } from "./git-runner";
 
 const execFileAsync = promisify(execFile);
+const getTestGitMemoryContext = createGitMemoryContextReader(runGitSafe, 2_000);
 let repo: string;
 
 async function git(args: string[]): Promise<string> {
@@ -54,6 +59,113 @@ afterEach(async () => {
 });
 
 describe("git-service", () => {
+  it("collects branch, full HEAD, and all porcelain-v2 path forms in one Git invocation", async () => {
+    const fullHead = "0123456789abcdef0123456789abcdef01234567";
+    const output = [
+      `# branch.oid ${fullHead}`,
+      "# branch.head feature/memory-context",
+      "1 .M N... 100644 100644 100644 abc abc file with spaces.ts",
+      "2 R. N... 100644 100644 100644 abc abc R100 renamed with spaces.ts",
+      "original name.ts",
+      "? untracked file.ts",
+      "u UU N... 100644 100644 100644 100644 aaa bbb ccc conflict file.ts",
+    ].join("\0") + "\0";
+    const calls: string[][] = [];
+    const reader = createGitMemoryContextReader(async (_cwd, args) => {
+      calls.push(args);
+      return output;
+    });
+
+    const metadata = await reader(repo);
+
+    expect(calls).toEqual([["status", "--porcelain=v2", "-z", "--branch"]]);
+    expect(metadata).toEqual({
+      branch: "feature/memory-context",
+      head: fullHead,
+      changedPaths: [
+        "file with spaces.ts",
+        "renamed with spaces.ts",
+        "original name.ts",
+        "untracked file.ts",
+        "conflict file.ts",
+      ],
+    });
+  });
+
+  it("reads local branch, HEAD, rename paths, and untracked paths for memory context", async () => {
+    const branch = (await git(["symbolic-ref", "--quiet", "--short", "HEAD"])).trim();
+    const head = (await git(["rev-parse", "--verify", "HEAD"])).trim();
+    await git(["mv", "tracked.txt", "renamed.txt"]);
+    await writeFile(join(repo, "new-memory-context.txt"), "untracked\n");
+
+    const metadata = await getTestGitMemoryContext(repo);
+
+    expect(metadata.branch).toBe(branch);
+    expect(metadata.head).toBe(head);
+    expect(metadata.head).toMatch(/^[0-9a-f]{40}$/);
+    expect(metadata.changedPaths).toEqual(expect.arrayContaining(["renamed.txt", "tracked.txt", "new-memory-context.txt"]));
+    expect(metadata.changedPaths.length).toBeLessThanOrEqual(64);
+  });
+
+  it("reads branch and changes from a linked worktree's own checkout", async () => {
+    const worktree = join(tmpdir(), `modus-memory-worktree-${randomUUID()}`);
+    try {
+      await git(["worktree", "add", "-b", "feature/memory-context", worktree, "HEAD"]);
+      await writeFile(join(worktree, "worktree-only.txt"), "child checkout\n");
+
+      const metadata = await getTestGitMemoryContext(worktree);
+
+      expect(metadata.branch).toBe("feature/memory-context");
+      expect(metadata.head).toBe((await git(["rev-parse", "--verify", "HEAD"])).trim());
+      expect(metadata.changedPaths).toContain("worktree-only.txt");
+    } finally {
+      await git(["worktree", "remove", "--force", worktree]).catch(() => undefined);
+      await rm(worktree, { recursive: true, force: true }).catch(() => undefined);
+    }
+  });
+
+  it("aborts one status command at the overall deadline and fails soft for errors/non-repositories", async () => {
+    const calls: string[][] = [];
+    let aborted = false;
+    const reader = createGitMemoryContextReader(async (_cwd, args, options) => {
+      calls.push(args);
+      return new Promise<string>((resolve) => {
+        options.signal?.addEventListener("abort", () => {
+          aborted = true;
+          resolve("");
+        }, { once: true });
+      });
+    }, 35);
+    const started = Date.now();
+    const partial = await reader(repo);
+    expect(Date.now() - started).toBeLessThan(250);
+    expect(partial).toEqual({ changedPaths: [] });
+    expect(calls).toEqual([["status", "--porcelain=v2", "-z", "--branch"]]);
+    expect(aborted).toBe(true);
+
+    const broken = createGitMemoryContextReader(async () => { throw new Error("git failed"); }, 35);
+    expect(await broken(repo)).toEqual({ changedPaths: [] });
+
+    const plain = await mkdtemp(join(tmpdir(), "modus-memory-not-repo-"));
+    try {
+      expect(await getGitMemoryContext(plain)).toEqual({ changedPaths: [] });
+    } finally {
+      await rm(plain, { recursive: true, force: true });
+    }
+  });
+
+  it("does not mutate partial metadata if a timed-out runner completes later", async () => {
+    const lateStatus = [`# branch.oid ${"d".repeat(40)}`, "# branch.head feature/partial", "? late-status.txt"].join("\0") + "\0";
+    const reader = createGitMemoryContextReader(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 45));
+      return lateStatus;
+    }, 10);
+    const result = await reader(repo);
+    expect(result).toEqual({ changedPaths: [] });
+    await new Promise((resolve) => setTimeout(resolve, 70));
+    expect(result).toEqual({ changedPaths: [] });
+  });
+
   it("lists staged, unstaged, and untracked changes", async () => {
     await writeFile(join(repo, "tracked.txt"), "changed\n");
     await writeFile(join(repo, "new.txt"), "new\n");
