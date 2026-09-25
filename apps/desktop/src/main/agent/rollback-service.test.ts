@@ -21,7 +21,8 @@ vi.mock("./checkpoint-service", () => ({
 
 const { getDatabase } = await import("../db/database");
 const { recordAgentEvent, listAgentEvents } = await import("./agent-event-store");
-const { createAgentRun } = await import("./agent-run-store");
+const { createAgentRun, updateAgentRunStatus } = await import("./agent-run-store");
+const projectMemory = await import("../memory/project-memory-service");
 const { PI_ROOT_LEAF, ROLLBACK_MARKER_TYPE, rollbackToUserMessage } = await import(
   "./rollback-service"
 );
@@ -120,6 +121,7 @@ function recordTurn(
     delta: `re: ${prompt}`,
   });
   recordAgentEvent({ type: "run.completed", sessionId, runId: run.id });
+  updateAgentRunStatus(run.id, "completed");
   return { runId: run.id, userMessageId };
 }
 
@@ -152,6 +154,32 @@ describe("rollbackToUserMessage", () => {
     const first = recordTurn(manager, sessionId, "first prompt");
     const second = recordTurn(manager, sessionId, "second prompt");
     const third = recordTurn(manager, sessionId, "third prompt");
+    const linkedMemory = projectMemory.proposeProjectMemory(
+      {
+        scope: "project",
+        category: "decision",
+        title: "Second turn decision",
+        claim: "A durable decision from the second turn.",
+        evidence: [{ kind: "run", sessionId, runId: second.runId }],
+      },
+      {
+        workspaceId: `workspace-${sessionId}`,
+        sessionId,
+        runId: second.runId,
+        userMessageId: second.userMessageId,
+        cwd: `root-${sessionId}`,
+      },
+    );
+    projectMemory.finalizeProjectMemoryRun({
+      sessionId,
+      runId: second.runId,
+      outcome: "completed",
+    });
+    expect(
+      getDatabase()
+        .prepare("select status from project_memory_records where id = ?")
+        .get(linkedMemory.id),
+    ).toEqual({ status: "active" });
     insertCheckpoint(sessionId, first.runId, "auto");
     insertCheckpoint(sessionId, first.runId, "turn-end");
     const secondCheckpoint = insertCheckpoint(sessionId, second.runId, "auto");
@@ -161,6 +189,24 @@ describe("rollbackToUserMessage", () => {
     const backupId = insertCheckpoint(sessionId, null, "restore-backup");
 
     const runtime = fakeRuntime();
+    const db = getDatabase();
+    db.exec(`create trigger fail_rollback_run_delete before delete on agent_runs
+      when old.session_id = '${sessionId}'
+      begin select raise(abort, 'injected rollback deletion failure'); end`);
+    await expect(
+      rollbackToUserMessage(runtime, {
+        sessionId,
+        userMessageId: second.userMessageId,
+      }),
+    ).rejects.toThrow(/injected rollback deletion failure/);
+    expect(
+      db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id),
+    ).toEqual({ status: "active" });
+    expect(
+      db.prepare("select count(*) as count from agent_runs where session_id = ?").get(sessionId),
+    ).toEqual({ count: 3 });
+    db.exec("drop trigger fail_rollback_run_delete");
+
     const result = await rollbackToUserMessage(runtime, {
       sessionId,
       userMessageId: second.userMessageId,
@@ -176,6 +222,17 @@ describe("rollbackToUserMessage", () => {
       checkpointId: secondCheckpoint,
       removedRuns: 2,
     });
+    expect(
+      db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id),
+    ).toEqual({ status: "needs_review" });
+    projectMemory.finalizeProjectMemoryRun({
+      sessionId,
+      runId: second.runId,
+      outcome: "completed",
+    });
+    expect(
+      db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id),
+    ).toEqual({ status: "needs_review" });
 
     // History: only the first turn's events/run survive.
     const events = listAgentEvents(sessionId).map((item) => item.event);

@@ -422,6 +422,30 @@ export const docsSearchSchema = z.object({
   query: z.string(),
 });
 
+export const projectMemorySnapshotSchema = z
+  .object({
+    workspaceId: optionalNonEmptyString,
+  })
+  .strict();
+
+export const workspaceSelectSchema = z
+  .object({
+    workspaceId: optionalNonEmptyString,
+  })
+  .strict();
+
+export const projectMemorySetEnabledSchema = z
+  .object({
+    scope: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("global") }).strict(),
+      z.object({ kind: z.literal("project"), workspaceId: nonEmptyString }).strict(),
+    ]),
+    enabled: z.boolean(),
+  })
+  .strict();
+
+export const projectMemoryIdSchema = z.object({ memoryId: nonEmptyString }).strict();
+
 export const checkpointRestoreSchema = z.object({
   checkpointId: nonEmptyString,
 });

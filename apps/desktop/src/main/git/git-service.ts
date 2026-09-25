@@ -22,7 +22,14 @@ import type {
 } from "../../shared/contracts";
 import { GitError, messageForCode } from "./git-errors";
 import { resolveRepo } from "./git-repo";
-import { isIndexLocked, resolveUserPath, runGit, runGitSafe, runGitSafeRaw } from "./git-runner";
+import {
+  isIndexLocked,
+  type RunGitOptions,
+  resolveUserPath,
+  runGit,
+  runGitSafe,
+  runGitSafeRaw,
+} from "./git-runner";
 
 /**
  * Thin shim over the hardened runner (`git-runner.ts`), preserving the historical
@@ -57,12 +64,12 @@ export async function initRepository(cwd: string): Promise<GitActionResult> {
   return { output: await git(cwd, ["init"]) };
 }
 
-export async function listChanges(cwd: string): Promise<FileChange[]> {
-  const output = await git(cwd, ["status", "--porcelain=v1", "-z"]);
+function parsePorcelainStatus(output: string, maxChanges = Number.POSITIVE_INFINITY): FileChange[] {
   const parts = output.split("\0").filter(Boolean);
   const changes: FileChange[] = [];
 
   for (let index = 0; index < parts.length; index += 1) {
+    if (changes.length >= maxChanges) break;
     const entry = parts[index];
     if (!entry) continue;
     const status = entry.slice(0, 2);
@@ -84,6 +91,120 @@ export async function listChanges(cwd: string): Promise<FileChange[]> {
 
   return changes;
 }
+
+export async function listChanges(cwd: string): Promise<FileChange[]> {
+  const output = await git(cwd, ["status", "--porcelain=v1", "-z"]);
+  return parsePorcelainStatus(output);
+}
+
+export type GitMemoryContext = {
+  branch?: string;
+  head?: string;
+  changedPaths: string[];
+};
+
+export const GIT_MEMORY_CONTEXT_TIMEOUT_MS = 125;
+export const GIT_MEMORY_CONTEXT_MAX_CHANGED_PATHS = 64;
+const GIT_MEMORY_CONTEXT_STATUS_MAX_BUFFER = 256 * 1024;
+
+type GitMemoryContextRunner = (
+  cwd: string,
+  args: string[],
+  options: RunGitOptions,
+) => Promise<string>;
+
+function parsePorcelainV2MemoryContext(output: string, maxPaths: number): GitMemoryContext {
+  const result: GitMemoryContext = { changedPaths: [] };
+  const paths = new Set<string>();
+  const parts = output.split("\0");
+  const addPath = (path: string | undefined): void => {
+    if (path && paths.size < maxPaths) paths.add(path);
+  };
+  const pathAfterFields = (entry: string, fieldCount: number): string | undefined => {
+    let separator = entry.indexOf(" ");
+    if (separator < 0) return undefined;
+    for (let field = 0; field < fieldCount; field += 1) {
+      separator = entry.indexOf(" ", separator + 1);
+      if (separator < 0) return undefined;
+    }
+    return entry.slice(separator + 1);
+  };
+
+  for (let index = 0; index < parts.length && paths.size < maxPaths; index += 1) {
+    const record = parts[index];
+    if (!record) continue;
+    if (record.startsWith("# branch.oid ")) {
+      const oid = record.slice("# branch.oid ".length).trim();
+      if (oid && oid !== "(initial)") result.head = oid;
+      continue;
+    }
+    if (record.startsWith("# branch.head ")) {
+      const branch = record.slice("# branch.head ".length).trim();
+      if (branch && branch !== "(detached)" && branch !== "(unknown)" && branch !== "(initial)") {
+        result.branch = branch;
+      }
+      continue;
+    }
+    if (record.startsWith("? ")) {
+      addPath(record.slice(2));
+      continue;
+    }
+    if (record.startsWith("1 ")) {
+      addPath(pathAfterFields(record, 7));
+      continue;
+    }
+    if (record.startsWith("2 ")) {
+      addPath(pathAfterFields(record, 8));
+      const original = parts[index + 1];
+      if (original !== undefined) {
+        index += 1;
+        addPath(original);
+      }
+      continue;
+    }
+    if (record.startsWith("u ")) {
+      addPath(pathAfterFields(record, 9));
+    }
+  }
+  result.changedPaths = [...paths];
+  return result;
+}
+
+/** Create an abortable, deadline-bound reader; injection keeps timeout/failure behavior testable. */
+export function createGitMemoryContextReader(
+  runner: GitMemoryContextRunner,
+  timeoutMs = GIT_MEMORY_CONTEXT_TIMEOUT_MS,
+): (cwd: string) => Promise<GitMemoryContext> {
+  return async (cwd) => {
+    const controller = new AbortController();
+    const command = Promise.resolve()
+      .then(() =>
+        runner(cwd, ["status", "--porcelain=v2", "-z", "--branch"], {
+          signal: controller.signal,
+          maxBuffer: GIT_MEMORY_CONTEXT_STATUS_MAX_BUFFER,
+        }),
+      )
+      .catch(() => "");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const deadline = new Promise<undefined>((resolveDeadline) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          resolveDeadline(undefined);
+        }, timeoutMs);
+      });
+      const output = await Promise.race([command, deadline]);
+      return output === undefined
+        ? { changedPaths: [] }
+        : parsePorcelainV2MemoryContext(output, GIT_MEMORY_CONTEXT_MAX_CHANGED_PATHS);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      controller.abort();
+    }
+  };
+}
+
+export const getGitMemoryContext = createGitMemoryContextReader(runGitSafe);
 
 export async function readDiff(
   cwd: string,

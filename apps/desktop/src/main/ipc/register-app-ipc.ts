@@ -129,6 +129,13 @@ import {
   upsertMcpServer,
 } from "../mcp/mcp-service";
 import {
+  deleteProjectMemory,
+  getProjectMemorySnapshot,
+  markProjectMemoryObsolete,
+  setProjectMemoryEnabled,
+  verifyProjectMemory,
+} from "../memory/project-memory-service";
+import {
   denyPendingPermissionRequests,
   resolvePermissionRequest,
 } from "../permissions/permission-broker";
@@ -166,6 +173,7 @@ import {
 } from "../workspace/workspace-service";
 import { upsertWorkspace } from "../workspace/workspace-store";
 import { IPC_CHANNELS } from "./channels";
+import { registerProjectMemoryIpcHandlers } from "./project-memory-ipc";
 import { registerProviderLimitsIpcHandlers } from "./provider-limits-ipc";
 import {
   agentCreateSchema,
@@ -244,6 +252,7 @@ import {
   workspaceRenameSchema,
 } from "./schemas";
 import { assertTrustedSender } from "./trusted-sender";
+import { clearSelectedWorkspace } from "./workspace-selection";
 
 function resolveReviewTarget(
   cwd: string,
@@ -357,7 +366,9 @@ export function registerAppIpc({
   ipcMain.handle(IPC_CHANNELS.workspaceRemove, async (event, input) => {
     assertTrustedSender(event);
     const parsed = parseIpcInput(workspaceIdSchema, input, IPC_CHANNELS.workspaceRemove);
-    return await removeProject(parsed.id);
+    const workspaces = await removeProject(parsed.id);
+    clearSelectedWorkspace(parsed.id);
+    return workspaces;
   });
 
   ipcMain.handle(IPC_CHANNELS.workspaceReveal, async (event, input) => {
@@ -1308,6 +1319,14 @@ export function registerAppIpc({
     getProviderLimits,
     refreshProviderLimits,
     setCodexLimitsEnabled,
+  });
+
+  registerProjectMemoryIpcHandlers(ipcMain, assertTrustedSender, {
+    getProjectMemorySnapshot,
+    setProjectMemoryEnabled,
+    verifyProjectMemory,
+    markProjectMemoryObsolete,
+    deleteProjectMemory,
   });
 
   ipcMain.handle(IPC_CHANNELS.modelSetDefault, (event, model: string) => {

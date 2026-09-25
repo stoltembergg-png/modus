@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatWaitedDuration, formatWaitHeadline } from "./wait-tools";
+import { toolRegistry } from "./registry";
+import { runWithAgentToolContext } from "./tool-context";
+import { formatWaitedDuration, formatWaitHeadline, registerWaitTools } from "./wait-tools";
 
 describe("formatWaitHeadline", () => {
   it("names a single subagent and duration from result facts", () => {
@@ -40,5 +42,47 @@ describe("formatWaitHeadline", () => {
         subagents: [],
       }),
     ).toBe(`Waited ${formatWaitedDuration(0)}`);
+  });
+});
+
+describe("wait memory candidate summaries", () => {
+  it("prints cited ids, categories, and claims without exposing transcript fields", async () => {
+    registerWaitTools({
+      waitBackground: async () =>
+        ({
+          waitedMs: 10,
+          timedOut: false,
+          subagents: [
+            {
+              id: "child-session",
+              task: "Inspect cache",
+              status: "completed",
+              memoryCandidates: [
+                {
+                  id: "memory-123",
+                  category: "decision",
+                  claim: "Normalize keys before caching.",
+                  transcript: "private raw transcript must not be shown",
+                },
+              ],
+            },
+          ],
+        }) as never,
+    });
+    const wait = toolRegistry.getCustomToolDefinitions("chat").find((tool) => tool.name === "wait");
+    if (!wait?.execute) throw new Error("wait tool missing");
+    const result = await runWithAgentToolContext(
+      {
+        workspaceId: "ws",
+        cwd: "/repo",
+        sessionId: "parent-session",
+      },
+      () => wait.execute?.("wait-call", {}, undefined, undefined, { cwd: "/repo" } as never),
+    );
+    const text = result?.content[0]?.type === "text" ? result.content[0].text : "";
+    expect(text).toContain("memory-123");
+    expect(text).toContain("decision");
+    expect(text).toContain("Normalize keys before caching.");
+    expect(text).not.toContain("private raw transcript");
   });
 });

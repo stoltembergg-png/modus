@@ -16,7 +16,7 @@ function addColumn(db: DatabaseSync, table: string, column: string, definition: 
   }
 }
 
-function migrate(db: DatabaseSync): void {
+export function migrateDatabase(db: DatabaseSync): void {
   db.exec(`
     create table if not exists workspaces (
       id text primary key,
@@ -213,6 +213,83 @@ function migrate(db: DatabaseSync): void {
   // "root" marks an empty tree (first message); NULL marks legacy runs.
   addColumn(db, "agent_runs", "pi_leaf_before", "text");
   addColumn(db, "model_configs", "thinking_variant", "text");
+
+  db.exec(`
+    create table if not exists project_memory_records (
+      id text primary key,
+      scope text not null check (scope in ('global', 'project')),
+      workspace_id text references workspaces(id) on delete cascade,
+      category text not null check (category in ('decision','architecture','convention','constraint','known_issue','solution','failed_attempt','task_result','preference')),
+      title text not null,
+      claim text not null,
+      status text not null check (status in ('candidate','active','provisional','needs_review','superseded','obsolete')),
+      verification text not null check (verification in ('user_explicit','agent_observed','tests_passed','parent_verified','unverified')),
+      created_at text not null,
+      updated_at text not null,
+      last_verified_at text,
+      supersedes_id text references project_memory_records(id) on delete set null,
+      dedupe_key text not null,
+      check ((scope = 'global' and workspace_id is null) or (scope = 'project' and workspace_id is not null))
+    );
+    create unique index if not exists idx_project_memory_dedupe
+      on project_memory_records(scope, ifnull(workspace_id, ''), dedupe_key);
+    create index if not exists idx_project_memory_workspace_status_verified
+      on project_memory_records(workspace_id, status, last_verified_at);
+    create index if not exists idx_project_memory_scope_status_verified
+      on project_memory_records(scope, status, last_verified_at);
+    create table if not exists project_memory_evidence (
+      id text primary key,
+      memory_id text not null references project_memory_records(id) on delete cascade,
+      kind text not null check (kind in ('user_message','run','task','subagent','commit','file','symbol')),
+      session_id text references agent_sessions(id) on delete set null,
+      run_id text,
+      user_message_id text,
+      task_ref text,
+      commit_sha text,
+      branch text,
+      path text,
+      symbol text,
+      detached integer not null default 0 check (detached in (0,1))
+    );
+    create index if not exists idx_project_memory_evidence_memory on project_memory_evidence(memory_id);
+    create index if not exists idx_project_memory_evidence_session on project_memory_evidence(session_id);
+    create table if not exists project_memory_events (
+      id text primary key,
+      memory_id text not null references project_memory_records(id) on delete cascade,
+      from_status text,
+      to_status text not null check (to_status in ('candidate','active','provisional','needs_review','superseded','obsolete')),
+      actor text not null,
+      reason text not null,
+      idempotency_key text,
+      created_at text not null
+    );
+    drop index if exists idx_project_memory_event_idempotency;
+    create unique index idx_project_memory_event_idempotency
+      on project_memory_events(idempotency_key, memory_id) where idempotency_key is not null;
+    create index if not exists idx_project_memory_events_memory on project_memory_events(memory_id, created_at);
+    create table if not exists project_memory_settings (
+      scope text not null check (scope in ('global','project')),
+      workspace_id text references workspaces(id) on delete cascade,
+      enabled integer not null check (enabled in (0,1)),
+      updated_at text not null,
+      primary key(scope, workspace_id),
+      check ((scope = 'global' and workspace_id is null) or (scope = 'project' and workspace_id is not null))
+    );
+    create unique index if not exists idx_project_memory_settings_scope
+      on project_memory_settings(scope, ifnull(workspace_id, ''));
+    create trigger if not exists trg_detach_project_memory_before_session_delete
+    before delete on agent_sessions
+    begin
+      update project_memory_evidence
+      set session_id = null, run_id = null, user_message_id = null, detached = 1
+      where session_id = old.id
+        or run_id in (select id from agent_runs where session_id = old.id)
+        or user_message_id in (
+          select user_message_id from agent_runs
+          where session_id = old.id and user_message_id is not null
+        );
+    end;
+  `);
 }
 
 export function getDatabase(): DatabaseSync {
@@ -226,7 +303,7 @@ export function getDatabase(): DatabaseSync {
   database = new DatabaseSync(dbPath);
   database.exec("PRAGMA journal_mode = WAL");
   database.exec("PRAGMA foreign_keys = ON");
-  migrate(database);
+  migrateDatabase(database);
 
   return database;
 }

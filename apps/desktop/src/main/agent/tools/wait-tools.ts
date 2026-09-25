@@ -121,6 +121,9 @@ const waitTool: ToolDefinition = defineTool({
     }
     for (const child of result.subagents) {
       lines.push(`subagent ${child.id} [${child.status}] ${child.task}`);
+      for (const memory of child.memoryCandidates ?? []) {
+        lines.push(`memory candidate ${memory.id} [${memory.category}]: ${memory.claim}`);
+      }
       if (child.output) {
         lines.push(excerptForWaitTool(child.output));
         lines.push("---");

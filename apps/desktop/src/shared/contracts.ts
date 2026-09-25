@@ -16,6 +16,63 @@ export type WorkspaceInfo = {
 /** Stable workspace id for folderless chats (sidebar → Chats). */
 export const CHATS_WORKSPACE_ID = "modus-inbox-chats";
 
+export type ProjectMemoryScope = { kind: "global" } | { kind: "project"; workspaceId: string };
+export type ProjectMemoryCategory =
+  | "decision"
+  | "architecture"
+  | "convention"
+  | "constraint"
+  | "known_issue"
+  | "solution"
+  | "failed_attempt"
+  | "task_result"
+  | "preference";
+export type ProjectMemoryStatus =
+  | "candidate"
+  | "active"
+  | "provisional"
+  | "needs_review"
+  | "superseded"
+  | "obsolete";
+export type ProjectMemoryVerification =
+  | "user_explicit"
+  | "agent_observed"
+  | "tests_passed"
+  | "parent_verified"
+  | "unverified";
+export type ProjectMemoryEvidence = {
+  kind: "user_message" | "run" | "task" | "subagent" | "commit" | "file" | "symbol";
+  sessionId?: string;
+  runId?: string;
+  userMessageId?: string;
+  taskRef?: string;
+  commitSha?: string;
+  branch?: string;
+  path?: string;
+  symbol?: string;
+  detached?: boolean;
+};
+export type ProjectMemoryRecord = {
+  id: string;
+  scope: ProjectMemoryScope;
+  category: ProjectMemoryCategory;
+  title: string;
+  claim: string;
+  status: ProjectMemoryStatus;
+  verification: ProjectMemoryVerification;
+  createdAt: string;
+  updatedAt: string;
+  lastVerifiedAt?: string;
+  supersedesId?: string;
+  evidence: ProjectMemoryEvidence[];
+};
+export type ProjectMemorySnapshot = {
+  globalEnabled: boolean;
+  projectEnabled: boolean;
+  memories: ProjectMemoryRecord[];
+};
+export type ProjectMemoryDigest = { text: string; memoryIds: string[]; estimatedTokens: number };
+
 export type AgentSessionInfo = {
   id: string;
   workspaceId: string;

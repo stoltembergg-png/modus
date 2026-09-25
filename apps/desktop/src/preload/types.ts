@@ -46,6 +46,8 @@ import type {
   PermissionDecision,
   PersonalizationState,
   PreviewReadResult,
+  ProjectMemoryScope,
+  ProjectMemorySnapshot,
   PromptDelivery,
   PromptImageAttachment,
   ProviderAuthOperationState,
@@ -107,6 +109,8 @@ export type ModusApi = {
     list(): Promise<WorkspaceInfo[]>;
     /** Inbox workspace for chats started without a project folder. */
     ensureChats(): Promise<WorkspaceInfo>;
+    /** Set this renderer's main-process current project; omitted for Inbox/no-project. */
+    select(input: { workspaceId?: string }): Promise<void>;
     /** Pin / unpin a project; returns the re-sorted recents. */
     pin(input: { id: string; pinned: boolean }): Promise<WorkspaceInfo[]>;
     /** Rename a project's sidebar label; returns the updated recents. */
@@ -345,6 +349,16 @@ export type ModusApi = {
     list(workspaceId: string): Promise<DocSource[]>;
     add(input: AddDocInput): Promise<DocSource>;
     search(input: { workspaceId: string; query: string }): Promise<DocHit[]>;
+  };
+  projectMemory: {
+    snapshot(input: { workspaceId?: string }): Promise<ProjectMemorySnapshot>;
+    setEnabled(input: {
+      scope: ProjectMemoryScope;
+      enabled: boolean;
+    }): Promise<ProjectMemorySnapshot>;
+    verify(input: { memoryId: string }): Promise<ProjectMemorySnapshot>;
+    markObsolete(input: { memoryId: string }): Promise<ProjectMemorySnapshot>;
+    delete(input: { memoryId: string }): Promise<ProjectMemorySnapshot>;
   };
   model: {
     list(): Promise<ModelInfo[]>;

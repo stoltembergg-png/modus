@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { AgentRollbackResult, AgentSessionInfo } from "../../shared/contracts";
 import { getDatabase } from "../db/database";
+import { invalidateProjectMemoriesForRuns } from "../memory/project-memory-service";
 import { getAgentSession, updateAgentSessionStatus } from "./agent-store";
 import { restoreCheckpoint } from "./checkpoint-service";
 import type { AgentRuntime } from "./runtime";
@@ -213,6 +214,8 @@ function truncateSessionHistory(sessionId: string, target: RunRow): number {
 
   db.exec("begin");
   try {
+    invalidateProjectMemoriesForRuns(sessionId, runIds);
+
     if (eventAnchor !== undefined) {
       db.prepare("delete from agent_events where session_id = ? and rowid >= ?").run(
         sessionId,
