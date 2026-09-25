@@ -147,6 +147,9 @@ export const IPC_CHANNELS = {
   modelTestCustomProvider: "model:test-custom-provider",
   modelUpdateConfig: "model:update-config",
   modelSetProviderModelsEnabled: "model:set-provider-models-enabled",
+  modelLimits: "model:limits",
+  modelLimitsRefresh: "model:limits-refresh",
+  modelLimitsSetCodexEnabled: "model:limits-set-codex-enabled",
   // 自绘 titlebar：renderer 调 IPC 触发 window 操作，main 反推 maximize 状态以同步图标
   windowMinimize: "window:minimize",
   windowToggleMaximize: "window:toggle-maximize",

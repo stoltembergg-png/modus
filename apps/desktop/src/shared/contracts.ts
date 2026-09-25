@@ -1146,6 +1146,44 @@ export type ModelSettingsState = {
   defaultModel?: string;
 };
 
+export type ProviderUsageMetric = {
+  id: string;
+  label: string;
+  kind: "budget" | "usage" | "balance" | "rate-limit";
+  value: number;
+  unit: string;
+  limit?: number;
+  remaining?: number;
+  window?: string;
+  resetAt?: string;
+};
+
+export type ProviderUsageSource = "openrouter-key" | "deepseek-balance" | "codex-cli";
+export type ProviderUsageStatus = "fresh" | "stale" | "unavailable" | "error";
+export type ProviderUsageMessage =
+  | "unsupported"
+  | "not-configured"
+  | "authentication-failed"
+  | "request-failed"
+  | "codex-disabled"
+  | "codex-cli-missing"
+  | "invalid-response";
+
+export type ProviderAccountUsage = {
+  providerId: string;
+  providerName: string;
+  source?: ProviderUsageSource;
+  status: ProviderUsageStatus;
+  updatedAt?: string;
+  metrics: ProviderUsageMetric[];
+  message?: ProviderUsageMessage;
+};
+
+export type ProviderLimitsState = {
+  accounts: ProviderAccountUsage[];
+  codexCliEnabled: boolean;
+};
+
 export type ConfigureProviderInput = {
   provider: string;
   apiKey?: string | undefined;

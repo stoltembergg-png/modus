@@ -50,6 +50,7 @@ import type {
   PromptImageAttachment,
   ProviderAuthOperationState,
   ProviderConnectionMethod,
+  ProviderLimitsState,
   QuestionAnswer,
   QuestionResponse,
   RawMcpEntry,
@@ -349,6 +350,9 @@ export type ModusApi = {
     list(): Promise<ModelInfo[]>;
     setDefault(model: string): Promise<void>;
     settings(): Promise<ModelSettingsState>;
+    limits(): Promise<ProviderLimitsState>;
+    refreshLimits(): Promise<ProviderLimitsState>;
+    setCodexLimitsEnabled(enabled: boolean): Promise<ProviderLimitsState>;
     refreshCatalog(): Promise<ModelSettingsState>;
     onCatalogChanged(callback: () => void): () => void;
     providerDetail(provider: string): Promise<ModelProviderDetail | undefined>;

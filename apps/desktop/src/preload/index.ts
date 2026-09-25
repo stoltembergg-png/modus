@@ -182,6 +182,10 @@ const api: ModusApi = {
     list: () => ipcRenderer.invoke("model:list"),
     setDefault: (model) => ipcRenderer.invoke("model:set-default", model),
     settings: () => ipcRenderer.invoke("model:settings"),
+    limits: () => ipcRenderer.invoke("model:limits"),
+    refreshLimits: () => ipcRenderer.invoke("model:limits-refresh"),
+    setCodexLimitsEnabled: (enabled) =>
+      ipcRenderer.invoke("model:limits-set-codex-enabled", { enabled }),
     refreshCatalog: () => ipcRenderer.invoke("model:refresh-catalog"),
     onCatalogChanged: (callback) => {
       const listener = () => callback();

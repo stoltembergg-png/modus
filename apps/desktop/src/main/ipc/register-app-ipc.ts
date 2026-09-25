@@ -47,6 +47,11 @@ import {
   updateModelConfig,
   upsertCustomProvider,
 } from "../agent/model-service";
+import {
+  getProviderLimits,
+  refreshProviderLimits,
+  setCodexLimitsEnabled,
+} from "../agent/provider-limits-service";
 import { listAgentReviews, startAgentReview } from "../agent/review-service";
 import { rollbackToUserMessage } from "../agent/rollback-service";
 import { getAgentRuntime } from "../agent/runtime-registry";
@@ -161,6 +166,7 @@ import {
 } from "../workspace/workspace-service";
 import { upsertWorkspace } from "../workspace/workspace-store";
 import { IPC_CHANNELS } from "./channels";
+import { registerProviderLimitsIpcHandlers } from "./provider-limits-ipc";
 import {
   agentCreateSchema,
   agentCycleModelSchema,
@@ -237,6 +243,7 @@ import {
   workspacePinSchema,
   workspaceRenameSchema,
 } from "./schemas";
+import { assertTrustedSender } from "./trusted-sender";
 
 function resolveReviewTarget(
   cwd: string,
@@ -270,38 +277,6 @@ function resolveReviewTarget(
 }
 
 const reviewControllers = new Map<number, AbortController>();
-
-const TRUSTED_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
-
-function isTrustedSender(event: IpcMainInvokeEvent): boolean {
-  const senderUrl = event.senderFrame?.url;
-
-  if (!senderUrl) {
-    return false;
-  }
-
-  try {
-    const url = new URL(senderUrl);
-
-    if (url.protocol === "file:") {
-      return true;
-    }
-
-    if (url.protocol === "http:" && TRUSTED_DEV_HOSTS.has(url.hostname)) {
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-}
-
-function assertTrustedSender(event: IpcMainInvokeEvent): void {
-  if (!isTrustedSender(event)) {
-    throw new Error("Blocked IPC call from untrusted renderer frame.");
-  }
-}
 
 function getSenderWindow(event: IpcMainInvokeEvent): BrowserWindowType {
   const window = BrowserWindow.fromWebContents(event.sender);
@@ -1327,6 +1302,12 @@ export function registerAppIpc({
   ipcMain.handle(IPC_CHANNELS.modelList, (event) => {
     assertTrustedSender(event);
     return listModels();
+  });
+
+  registerProviderLimitsIpcHandlers(ipcMain, assertTrustedSender, {
+    getProviderLimits,
+    refreshProviderLimits,
+    setCodexLimitsEnabled,
   });
 
   ipcMain.handle(IPC_CHANNELS.modelSetDefault, (event, model: string) => {

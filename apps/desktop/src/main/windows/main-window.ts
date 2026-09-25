@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   app,
   BrowserWindow,
@@ -8,6 +8,7 @@ import {
   shell,
 } from "electron";
 import { IPC_CHANNELS } from "../ipc/channels";
+import { isTrustedRendererUrl, registerTrustedSender } from "../ipc/trusted-sender";
 import type { StartupTimeline } from "../startup/startup-timeline";
 
 const currentDir = fileURLToPath(new URL(".", import.meta.url));
@@ -22,6 +23,29 @@ function isExternalUrlAllowed(rawUrl: string): boolean {
   } catch {
     return false;
   }
+}
+
+function resolveRendererTarget(packaged: boolean, configuredUrl: string | undefined, packagedUrl: string): {
+  url: string;
+  isDevServer: boolean;
+} {
+  if (!packaged && configuredUrl) {
+    try {
+      const url = new URL(configuredUrl);
+      const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+      if (
+        (url.protocol === "http:" || url.protocol === "https:") &&
+        loopbackHosts.has(url.hostname) &&
+        !url.username &&
+        !url.password
+      ) {
+        return { url: url.href, isDevServer: true };
+      }
+    } catch {
+      // Invalid development configuration falls back to the packaged renderer.
+    }
+  }
+  return { url: packagedUrl, isDevServer: false };
 }
 
 export function createMainWindow({
@@ -90,6 +114,27 @@ export function createMainWindow({
     sendState();
   });
 
+  const packagedRendererPath = join(currentDir, "../renderer/index.html");
+  const packagedRendererUrl = pathToFileURL(packagedRendererPath).href;
+  const { url: rendererUrl, isDevServer } = resolveRendererTarget(
+    app.isPackaged,
+    process.env.ELECTRON_RENDERER_URL,
+    packagedRendererUrl,
+  );
+  const unregisterTrustedSender = registerTrustedSender(window.webContents, rendererUrl);
+  window.once("closed", unregisterTrustedSender);
+
+  window.webContents.on("will-navigate", (event, url) => {
+    if (!isTrustedRendererUrl(rendererUrl, url)) {
+      event.preventDefault();
+    }
+  });
+  window.webContents.on("will-redirect", (event, url) => {
+    if (!isTrustedRendererUrl(rendererUrl, url)) {
+      event.preventDefault();
+    }
+  });
+
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (isExternalUrlAllowed(url)) {
       void shell.openExternal(url);
@@ -98,7 +143,7 @@ export function createMainWindow({
     return { action: "deny" };
   });
 
-  if (process.env.ELECTRON_RENDERER_URL) {
+  if (isDevServer) {
     window.webContents.on("console-message", (event) => {
       console.log(`[renderer:${event.level}] ${event.message}`);
     });
@@ -110,10 +155,10 @@ export function createMainWindow({
     });
   }
 
-  if (process.env.ELECTRON_RENDERER_URL) {
-    void window.loadURL(process.env.ELECTRON_RENDERER_URL);
+  if (isDevServer) {
+    void window.loadURL(rendererUrl);
   } else {
-    void window.loadFile(join(currentDir, "../renderer/index.html"));
+    void window.loadFile(packagedRendererPath);
   }
 
   return window;
