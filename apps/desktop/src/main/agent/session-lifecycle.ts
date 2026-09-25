@@ -1,8 +1,10 @@
 import { join } from "node:path";
 import { app } from "electron";
 import { denyPendingQuestionRequestsForSession } from "../interaction/question-broker";
+import { finalizeProjectMemoryRun } from "../memory/project-memory-service";
 import { denyPendingPermissionRequestsForSession } from "../permissions/permission-broker";
 import { deleteSessionPlan } from "../plan/plan-store";
+import { listAgentRuns } from "./agent-run-store";
 import {
   deleteAgentSession,
   getAgentSession,
@@ -13,8 +15,6 @@ import {
 } from "./agent-store";
 import { deleteSessionCheckpoints } from "./checkpoint-service";
 import { getAgentRuntime } from "./runtime-registry";
-import { listAgentRuns } from "./agent-run-store";
-import { finalizeProjectMemoryRun } from "../memory/project-memory-service";
 
 /** Best-effort explicit-close/archive sweep; running and blocked runs are not completion signals. */
 function finalizeTerminalProjectMemoryRuns(sessionId: string): void {

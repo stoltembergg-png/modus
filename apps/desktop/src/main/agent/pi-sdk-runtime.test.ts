@@ -140,7 +140,9 @@ const contextPlanner = await import("../context/context-planner");
 const gitMemoryContext = await import("../git/git-service");
 const { recordAgentEvent } = await import("./agent-event-store");
 const { getAgentSession } = await import("./agent-store");
-const { getActiveAgentRun, createAgentRun, updateAgentRunStatus } = await import("./agent-run-store");
+const { getActiveAgentRun, createAgentRun, updateAgentRunStatus } = await import(
+  "./agent-run-store"
+);
 const projectMemory = await import("../memory/project-memory-service");
 const { writePlan, readPlanById } = await import("../plan/plan-store");
 const { setAgentToolContext } = await import("./tools/tool-context");
@@ -241,8 +243,12 @@ function proposeMemoryForRun(input: {
 
 function countMemoryCompactionEvents(memoryId: string | undefined, idempotencyKey: string): number {
   if (!memoryId) return 0;
-  return (getDatabase().prepare(`select count(*) as count from project_memory_events
-    where memory_id = ? and idempotency_key = ?`).get(memoryId, idempotencyKey) as { count: number }).count;
+  return (
+    getDatabase()
+      .prepare(`select count(*) as count from project_memory_events
+    where memory_id = ? and idempotency_key = ?`)
+      .get(memoryId, idempotencyKey) as { count: number }
+  ).count;
 }
 
 function insertSubagentSession(
@@ -400,7 +406,11 @@ describe("PiSdkRuntime", () => {
       },
     });
     expect(memoryId).toBeDefined();
-    expect(projectMemory.getProjectMemorySnapshot(workspaceId).memories.find((memory) => memory.id === memoryId)?.status).toBe("active");
+    expect(
+      projectMemory
+        .getProjectMemorySnapshot(workspaceId)
+        .memories.find((memory) => memory.id === memoryId)?.status,
+    ).toBe("active");
   });
 
   it("keeps a successful run completed when project-memory finalization fails", async () => {
@@ -413,7 +423,10 @@ describe("PiSdkRuntime", () => {
         const activeRun = getActiveAgentRun(sessionId);
         if (!activeRun) throw new Error("expected active run");
         memoryId = proposeMemoryForRun({
-          sessionId, workspaceId, runId: activeRun.id, cwd,
+          sessionId,
+          workspaceId,
+          runId: activeRun.id,
+          cwd,
           title: "Run must survive memory failure",
           claim: "A memory finalization error must not fail a successful run.",
         }).id;
@@ -436,20 +449,34 @@ describe("PiSdkRuntime", () => {
     let finalizeAttempted = false;
     try {
       await new PiSdkRuntime().prompt(createWindowStub(), {
-        context: [], delivery: "normal", message: "complete safely", sessionId, userMessageId: "message-success",
+        context: [],
+        delivery: "normal",
+        message: "complete safely",
+        sessionId,
+        userMessageId: "message-success",
       });
       finalizeAttempted = finalize.mock.calls.length > 0;
     } finally {
       getDatabase().exec("drop trigger if exists fail_memory_finalization");
       finalize.mockRestore();
     }
-    const run = getDatabase().prepare("select status from agent_runs where session_id = ?").get(sessionId) as { status: string };
-    const eventTypes = (getDatabase().prepare("select type from agent_events where session_id = ?").all(sessionId) as Array<{ type: string }>).map((row) => row.type);
+    const run = getDatabase()
+      .prepare("select status from agent_runs where session_id = ?")
+      .get(sessionId) as { status: string };
+    const eventTypes = (
+      getDatabase()
+        .prepare("select type from agent_events where session_id = ?")
+        .all(sessionId) as Array<{ type: string }>
+    ).map((row) => row.type);
     expect(run.status).toBe("completed");
     expect(finalizeAttempted).toBe(true);
     expect(eventTypes).toContain("run.completed");
     expect(eventTypes).not.toContain("run.failed");
-    expect(projectMemory.getProjectMemorySnapshot(workspaceId).memories.find((memory) => memory.id === memoryId)?.status).toBe("candidate");
+    expect(
+      projectMemory
+        .getProjectMemorySnapshot(workspaceId)
+        .memories.find((memory) => memory.id === memoryId)?.status,
+    ).toBe("candidate");
   });
 
   it("injects one cited untrusted active-memory block before user text, never into system prompts", async () => {
@@ -458,26 +485,85 @@ describe("PiSdkRuntime", () => {
     insertSession(sessionId, workspaceId, join(userData, "missing.jsonl"));
     await mkdir(join(cwd, "src"), { recursive: true });
     await writeFile(join(cwd, "src", "cache.ts"), "export const cacheSize = 4;\n");
-    const sourceRun = createAgentRun({ sessionId, prompt: "seed project memories", userMessageId: "seed-user" });
+    const sourceRun = createAgentRun({
+      sessionId,
+      prompt: "seed project memories",
+      userMessageId: "seed-user",
+    });
     updateAgentRunStatus(sourceRun.id, "completed");
-    const active = projectMemory.proposeProjectMemory({
-      scope: "project",
-      category: "constraint",
-      title: "Cache key constraint",
-      claim: "Normalize cache keys before lookup to avoid duplicate entries.",
-      evidence: [{ kind: "run" }, { kind: "file", path: "src/cache.ts" }, { kind: "symbol", symbol: "cacheSize" }],
-    }, { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd });
+    const active = projectMemory.proposeProjectMemory(
+      {
+        scope: "project",
+        category: "constraint",
+        title: "Cache key constraint",
+        claim: "Normalize cache keys before lookup to avoid duplicate entries.",
+        evidence: [
+          { kind: "run" },
+          { kind: "file", path: "src/cache.ts" },
+          { kind: "symbol", symbol: "cacheSize" },
+        ],
+      },
+      { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd },
+    );
     const decoys = [
-      projectMemory.proposeProjectMemory({ scope: "project", category: "decision", title: "Inactive candidate", claim: "This candidate must not appear in the prompt.", evidence: [{ kind: "run" }] }, { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd }),
-      projectMemory.proposeProjectMemory({ scope: "project", category: "decision", title: "Inactive provisional", claim: "This provisional claim must not appear in the prompt.", evidence: [{ kind: "run" }] }, { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd }),
-      projectMemory.proposeProjectMemory({ scope: "project", category: "decision", title: "Inactive review", claim: "This review claim must not appear in the prompt.", evidence: [{ kind: "run" }] }, { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd }),
-      projectMemory.proposeProjectMemory({ scope: "project", category: "decision", title: "Inactive obsolete", claim: "This obsolete claim must not appear in the prompt.", evidence: [{ kind: "run" }] }, { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd }),
+      projectMemory.proposeProjectMemory(
+        {
+          scope: "project",
+          category: "decision",
+          title: "Inactive candidate",
+          claim: "This candidate must not appear in the prompt.",
+          evidence: [{ kind: "run" }],
+        },
+        { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd },
+      ),
+      projectMemory.proposeProjectMemory(
+        {
+          scope: "project",
+          category: "decision",
+          title: "Inactive provisional",
+          claim: "This provisional claim must not appear in the prompt.",
+          evidence: [{ kind: "run" }],
+        },
+        { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd },
+      ),
+      projectMemory.proposeProjectMemory(
+        {
+          scope: "project",
+          category: "decision",
+          title: "Inactive review",
+          claim: "This review claim must not appear in the prompt.",
+          evidence: [{ kind: "run" }],
+        },
+        { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd },
+      ),
+      projectMemory.proposeProjectMemory(
+        {
+          scope: "project",
+          category: "decision",
+          title: "Inactive obsolete",
+          claim: "This obsolete claim must not appear in the prompt.",
+          evidence: [{ kind: "run" }],
+        },
+        { workspaceId, sessionId, runId: sourceRun.id, userMessageId: "seed-user", cwd },
+      ),
     ];
-    projectMemory.finalizeProjectMemoryRun({ sessionId, runId: sourceRun.id, outcome: "completed" });
-    getDatabase().prepare("update project_memory_records set status = 'candidate' where id = ?").run(decoys[0]!.id);
-    getDatabase().prepare("update project_memory_records set status = 'provisional' where id = ?").run(decoys[1]!.id);
-    getDatabase().prepare("update project_memory_records set status = 'needs_review' where id = ?").run(decoys[2]!.id);
-    getDatabase().prepare("update project_memory_records set status = 'obsolete' where id = ?").run(decoys[3]!.id);
+    projectMemory.finalizeProjectMemoryRun({
+      sessionId,
+      runId: sourceRun.id,
+      outcome: "completed",
+    });
+    getDatabase()
+      .prepare("update project_memory_records set status = 'candidate' where id = ?")
+      .run(decoys[0]!.id);
+    getDatabase()
+      .prepare("update project_memory_records set status = 'provisional' where id = ?")
+      .run(decoys[1]!.id);
+    getDatabase()
+      .prepare("update project_memory_records set status = 'needs_review' where id = ?")
+      .run(decoys[2]!.id);
+    getDatabase()
+      .prepare("update project_memory_records set status = 'obsolete' where id = ?")
+      .run(decoys[3]!.id);
 
     let composed = "";
     const session = createMockPiSession({
@@ -514,7 +600,9 @@ describe("PiSdkRuntime", () => {
     expect(composed).toContain("file:src/cache.ts");
     expect(composed).toContain("symbol:cacheSize");
     for (const decoy of decoys) expect(composed).not.toContain(decoy.claim);
-    const systemPrompt = (mocks.resourceLoaderOptions.at(-1) as { appendSystemPrompt: string[] }).appendSystemPrompt.join("\n");
+    const systemPrompt = (
+      mocks.resourceLoaderOptions.at(-1) as { appendSystemPrompt: string[] }
+    ).appendSystemPrompt.join("\n");
     expect(systemPrompt).not.toContain("<project_memory_context>");
     expect(systemPrompt).not.toContain(active.claim);
   });
@@ -523,23 +611,34 @@ describe("PiSdkRuntime", () => {
     const sessionId = `session-${crypto.randomUUID()}`;
     const workspaceId = `workspace-${crypto.randomUUID()}`;
     insertSession(sessionId, workspaceId, join(userData, "missing.jsonl"));
-    const planner = vi.spyOn(contextPlanner, "planTurnContext").mockRejectedValue(new Error("sensitive planner failure detail"));
+    const planner = vi
+      .spyOn(contextPlanner, "planTurnContext")
+      .mockRejectedValue(new Error("sensitive planner failure detail"));
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     let composed = "";
     const session = createMockPiSession({
       prompt: vi.fn(async (message: string) => {
         composed = message;
         mocks.emitPiEvent({ type: "message_start", message: { role: "assistant" } });
-        mocks.emitPiEvent({ type: "message_update", message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta", delta: "done" } });
+        mocks.emitPiEvent({
+          type: "message_update",
+          message: { role: "assistant" },
+          assistantMessageEvent: { type: "text_delta", delta: "done" },
+        });
         mocks.emitPiEvent({ type: "message_end", message: { role: "assistant" } });
       }),
     });
     mocks.createAgentSession.mockImplementationOnce(async () => ({ session }));
     try {
-      await expect(new PiSdkRuntime().prompt(createWindowStub(), {
-        context: [], delivery: "normal", message: "continue without memory", sessionId,
-        userMessageId: "planner-error-user",
-      })).resolves.toBeUndefined();
+      await expect(
+        new PiSdkRuntime().prompt(createWindowStub(), {
+          context: [],
+          delivery: "normal",
+          message: "continue without memory",
+          sessionId,
+          userMessageId: "planner-error-user",
+        }),
+      ).resolves.toBeUndefined();
       expect(composed).toContain("continue without memory");
       expect(composed).not.toContain("<project_memory_context>");
       expect(warning).toHaveBeenCalledOnce();
@@ -558,17 +657,25 @@ describe("PiSdkRuntime", () => {
     await mkdir(join(worktreeCwd, "src"), { recursive: true });
     const sourcePath = join(worktreeCwd, "src", "cache.ts");
     await writeFile(sourcePath, "export const cacheSize = 3;\n");
-    getDatabase().prepare("update agent_sessions set cwd = ? where id = ?").run(worktreeCwd, sessionId);
+    getDatabase()
+      .prepare("update agent_sessions set cwd = ? where id = ?")
+      .run(worktreeCwd, sessionId);
     const git = vi.spyOn(gitMemoryContext, "getGitMemoryContext").mockResolvedValue({
       branch: "feature/linked-worktree",
       head: "abc1234",
       changedPaths: ["src/renamed-cache.ts", "src/untracked-cache.ts"],
     });
-    const planner = vi.spyOn(contextPlanner, "planTurnContext").mockResolvedValue({ text: "", memoryIds: [], estimatedTokens: 0 });
+    const planner = vi
+      .spyOn(contextPlanner, "planTurnContext")
+      .mockResolvedValue({ text: "", memoryIds: [], estimatedTokens: 0 });
     const session = createMockPiSession({
       prompt: vi.fn(async () => {
         mocks.emitPiEvent({ type: "message_start", message: { role: "assistant" } });
-        mocks.emitPiEvent({ type: "message_update", message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta", delta: "done" } });
+        mocks.emitPiEvent({
+          type: "message_update",
+          message: { role: "assistant" },
+          assistantMessageEvent: { type: "text_delta", delta: "done" },
+        });
         mocks.emitPiEvent({ type: "message_end", message: { role: "assistant" } });
       }),
     });
@@ -581,36 +688,52 @@ describe("PiSdkRuntime", () => {
       userMessageId: "git-context-user",
     });
     expect(git).toHaveBeenCalledWith(worktreeCwd);
-    expect(planner).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId,
-      sessionId,
-      query: "inspect this cache",
-      contextPaths: ["src/cache.ts"],
-      git: {
-        branch: "feature/linked-worktree",
-        head: "abc1234",
-        changedPaths: ["src/renamed-cache.ts", "src/untracked-cache.ts"],
-      },
-    }));
+    expect(planner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId,
+        sessionId,
+        query: "inspect this cache",
+        contextPaths: ["src/cache.ts"],
+        git: {
+          branch: "feature/linked-worktree",
+          head: "abc1234",
+          changedPaths: ["src/renamed-cache.ts", "src/untracked-cache.ts"],
+        },
+      }),
+    );
   });
 
   it("passes empty Git metadata to planning and completes the prompt when Git metadata fails", async () => {
     const sessionId = `session-${crypto.randomUUID()}`;
     const workspaceId = `workspace-${crypto.randomUUID()}`;
     insertSession(sessionId, workspaceId, join(userData, "missing.jsonl"));
-    const git = vi.spyOn(gitMemoryContext, "getGitMemoryContext").mockRejectedValue(new Error("git metadata unavailable"));
-    const planner = vi.spyOn(contextPlanner, "planTurnContext").mockResolvedValue({ text: "", memoryIds: [], estimatedTokens: 0 });
+    const git = vi
+      .spyOn(gitMemoryContext, "getGitMemoryContext")
+      .mockRejectedValue(new Error("git metadata unavailable"));
+    const planner = vi
+      .spyOn(contextPlanner, "planTurnContext")
+      .mockResolvedValue({ text: "", memoryIds: [], estimatedTokens: 0 });
     const session = createMockPiSession({
       prompt: vi.fn(async () => {
         mocks.emitPiEvent({ type: "message_start", message: { role: "assistant" } });
-        mocks.emitPiEvent({ type: "message_update", message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta", delta: "done" } });
+        mocks.emitPiEvent({
+          type: "message_update",
+          message: { role: "assistant" },
+          assistantMessageEvent: { type: "text_delta", delta: "done" },
+        });
         mocks.emitPiEvent({ type: "message_end", message: { role: "assistant" } });
       }),
     });
     mocks.createAgentSession.mockImplementationOnce(async () => ({ session }));
-    await expect(new PiSdkRuntime().prompt(createWindowStub(), {
-      context: [], delivery: "normal", message: "continue without Git", sessionId, userMessageId: "git-failure-user",
-    })).resolves.toBeUndefined();
+    await expect(
+      new PiSdkRuntime().prompt(createWindowStub(), {
+        context: [],
+        delivery: "normal",
+        message: "continue without Git",
+        sessionId,
+        userMessageId: "git-failure-user",
+      }),
+    ).resolves.toBeUndefined();
     expect(git).toHaveBeenCalledOnce();
     expect(planner).toHaveBeenCalledWith(expect.objectContaining({ git: { changedPaths: [] } }));
   });
@@ -720,37 +843,60 @@ describe("PiSdkRuntime", () => {
     expect(promptCalls).toBe(3);
     expect(planner).toHaveBeenCalledOnce();
     expect(composedMessages[0]).toContain("<project_memory_context>");
-    expect(composedMessages.slice(1).every((message) => !message.includes("<project_memory_context>"))).toBe(true);
+    expect(
+      composedMessages.slice(1).every((message) => !message.includes("<project_memory_context>")),
+    ).toBe(true);
   });
 
   it("gets a fresh memory digest for a distinct user follow-up after the previous run ends", async () => {
     const sessionId = `session-${crypto.randomUUID()}`;
     insertSession(sessionId, `workspace-${crypto.randomUUID()}`, join(userData, "missing.jsonl"));
     const plannerInputs: Array<{ query: string; sessionId: string }> = [];
-    const planner = vi.spyOn(contextPlanner, "planTurnContext").mockImplementation(async (input) => {
-      plannerInputs.push({ query: input.query, sessionId: input.sessionId });
-      const marker = plannerInputs.length === 1 ? "first-digest" : "follow-up-digest";
-      return { text: `- ${marker} [category:decision; status:active; memory:${marker}]`, memoryIds: [marker], estimatedTokens: 10 };
-    });
+    const planner = vi
+      .spyOn(contextPlanner, "planTurnContext")
+      .mockImplementation(async (input) => {
+        plannerInputs.push({ query: input.query, sessionId: input.sessionId });
+        const marker = plannerInputs.length === 1 ? "first-digest" : "follow-up-digest";
+        return {
+          text: `- ${marker} [category:decision; status:active; memory:${marker}]`,
+          memoryIds: [marker],
+          estimatedTokens: 10,
+        };
+      });
     const messages: string[] = [];
     const session = createMockPiSession({
       prompt: vi.fn(async (message: string) => {
         messages.push(message);
         mocks.emitPiEvent({ type: "message_start", message: { role: "assistant" } });
-        mocks.emitPiEvent({ type: "message_update", message: { role: "assistant" }, assistantMessageEvent: { type: "text_delta", delta: "done" } });
+        mocks.emitPiEvent({
+          type: "message_update",
+          message: { role: "assistant" },
+          assistantMessageEvent: { type: "text_delta", delta: "done" },
+        });
         mocks.emitPiEvent({ type: "message_end", message: { role: "assistant" } });
       }),
     });
     mocks.createAgentSession.mockImplementationOnce(async () => ({ session }));
     const runtime = new PiSdkRuntime();
     await runtime.prompt(createWindowStub(), {
-      context: [], delivery: "normal", message: "first unique request", sessionId, userMessageId: "fresh-user-one",
+      context: [],
+      delivery: "normal",
+      message: "first unique request",
+      sessionId,
+      userMessageId: "fresh-user-one",
     });
     await runtime.prompt(createWindowStub(), {
-      context: [], delivery: "follow-up", message: "second distinct follow-up", sessionId, userMessageId: "fresh-user-two",
+      context: [],
+      delivery: "follow-up",
+      message: "second distinct follow-up",
+      sessionId,
+      userMessageId: "fresh-user-two",
     });
     expect(planner).toHaveBeenCalledTimes(2);
-    expect(plannerInputs.map((input) => input.query)).toEqual(["first unique request", "second distinct follow-up"]);
+    expect(plannerInputs.map((input) => input.query)).toEqual([
+      "first unique request",
+      "second distinct follow-up",
+    ]);
     expect(messages[0]).toContain("first-digest");
     expect(messages[1]).toContain("follow-up-digest");
   });
@@ -774,7 +920,10 @@ describe("PiSdkRuntime", () => {
     updateAgentRunStatus(completedRun.id, "completed");
     const recordCompaction = vi.spyOn(projectMemory, "recordProjectMemoryCompaction");
     const memory = proposeMemoryForRun({
-      sessionId, workspaceId, runId: completedRun.id, cwd,
+      sessionId,
+      workspaceId,
+      runId: completedRun.id,
+      cwd,
       title: "Manual compaction candidate",
       claim: "Manual compaction preserves a concise candidate event.",
     });
@@ -795,8 +944,15 @@ describe("PiSdkRuntime", () => {
 
     expect((await runtime.listRuns(sessionId)).map((run) => run.id)).toEqual([completedRun.id]);
     expect(recordCompaction).toHaveBeenCalledTimes(2);
-    expect(recordCompaction).toHaveBeenCalledWith({ sessionId, runId: completedRun.id, aborted: false, willRetry: false });
-    expect(countMemoryCompactionEvents(memory.id, `compaction:${sessionId}:${completedRun.id}`)).toBe(1);
+    expect(recordCompaction).toHaveBeenCalledWith({
+      sessionId,
+      runId: completedRun.id,
+      aborted: false,
+      willRetry: false,
+    });
+    expect(
+      countMemoryCompactionEvents(memory.id, `compaction:${sessionId}:${completedRun.id}`),
+    ).toBe(1);
     recordCompaction.mockRestore();
     const rows = getDatabase()
       .prepare("select type from agent_events where session_id = ? order by rowid")
@@ -905,7 +1061,11 @@ describe("PiSdkRuntime", () => {
     expect(promptFn.mock.calls[2]?.[0]).toContain("Context was compacted");
     expect(planner).toHaveBeenCalledOnce();
     expect(promptFn.mock.calls[0]?.[0]).toContain("<project_memory_context>");
-    expect(promptFn.mock.calls.slice(1).every(([message]) => !String(message).includes("<project_memory_context>"))).toBe(true);
+    expect(
+      promptFn.mock.calls
+        .slice(1)
+        .every(([message]) => !String(message).includes("<project_memory_context>")),
+    ).toBe(true);
     const types = (
       getDatabase()
         .prepare(
@@ -917,8 +1077,17 @@ describe("PiSdkRuntime", () => {
     expect(types).toContain("compaction.ended");
     expect(types).toContain("run.completed");
     expect(recordCompaction).toHaveBeenCalledTimes(2);
-    expect(recordCompaction.mock.calls[0]?.[0]).toMatchObject({ sessionId, aborted: false, willRetry: false });
-    expect(recordCompaction.mock.calls[1]?.[0]).toMatchObject({ sessionId, runId: compactionRunId, aborted: false, willRetry: false });
+    expect(recordCompaction.mock.calls[0]?.[0]).toMatchObject({
+      sessionId,
+      aborted: false,
+      willRetry: false,
+    });
+    expect(recordCompaction.mock.calls[1]?.[0]).toMatchObject({
+      sessionId,
+      runId: compactionRunId,
+      aborted: false,
+      willRetry: false,
+    });
     const compactionKey = `compaction:${sessionId}:${compactionRunId}`;
     for (const memoryId of [firstCompactedMemoryId, secondCompactedMemoryId]) {
       expect(countMemoryCompactionEvents(memoryId, compactionKey)).toBe(1);
@@ -930,7 +1099,11 @@ describe("PiSdkRuntime", () => {
     { aborted: true, willRetry: false, failed: false },
     { aborted: false, willRetry: true, failed: false },
     { aborted: false, willRetry: false, failed: true },
-  ])("does not finalize compaction aborted=$aborted willRetry=$willRetry failed=$failed", async ({ aborted, willRetry, failed }) => {
+  ])("does not finalize compaction aborted=$aborted willRetry=$willRetry failed=$failed", async ({
+    aborted,
+    willRetry,
+    failed,
+  }) => {
     const sessionId = `session-${crypto.randomUUID()}`;
     insertSession(sessionId, `workspace-${crypto.randomUUID()}`, join(userData, "missing.jsonl"));
     const recordCompaction = vi.spyOn(projectMemory, "recordProjectMemoryCompaction");
@@ -939,21 +1112,31 @@ describe("PiSdkRuntime", () => {
         prompt: vi.fn(async () => {
           mocks.emitPiEvent({ type: "compaction_start", reason: "overflow" });
           mocks.emitPiEvent({
-            type: "compaction_end", reason: "overflow", aborted, willRetry,
+            type: "compaction_end",
+            reason: "overflow",
+            aborted,
+            willRetry,
             ...(failed ? { errorMessage: "compaction failed" } : {}),
           });
           mocks.emitPiEvent({ type: "message_start", message: { role: "assistant" } });
           mocks.emitPiEvent({
             type: "message_update",
             message: { role: "assistant" },
-            assistantMessageEvent: { type: "text_delta", delta: "completed after overflow handling" },
+            assistantMessageEvent: {
+              type: "text_delta",
+              delta: "completed after overflow handling",
+            },
           });
           mocks.emitPiEvent({ type: "message_end", message: { role: "assistant" } });
         }),
       }),
     }));
     await new PiSdkRuntime().prompt(createWindowStub(), {
-      context: [], delivery: "normal", message: "handle compaction", sessionId, userMessageId: `user-${sessionId}`,
+      context: [],
+      delivery: "normal",
+      message: "handle compaction",
+      sessionId,
+      userMessageId: `user-${sessionId}`,
     });
     expect(recordCompaction).not.toHaveBeenCalled();
     recordCompaction.mockRestore();
@@ -968,7 +1151,10 @@ describe("PiSdkRuntime", () => {
     const compact = vi.fn(async () => {
       mocks.emitPiEvent({ type: "compaction_start", reason: "manual" });
       mocks.emitPiEvent({
-        type: "compaction_end", reason: "manual", aborted: false, willRetry: false,
+        type: "compaction_end",
+        reason: "manual",
+        aborted: false,
+        willRetry: false,
         errorMessage: "manual compaction failed",
       });
     });
@@ -1522,11 +1708,21 @@ describe("PiSdkRuntime", () => {
       const runId = `child-extra-run-${index}-${crypto.randomUUID()}`;
       const userMessageId = `child-extra-message-${index}`;
       const now = new Date().toISOString();
-      getDatabase().prepare(`insert into agent_sessions
+      getDatabase()
+        .prepare(`insert into agent_sessions
         (id, workspace_id, title, cwd, status, parent_session_id, created_at, updated_at)
         values (?, ?, ?, ?, 'idle', ?, ?, ?)`)
-        .run(extraSessionId, workspaceId, `Additional child ${index}`, started.session.cwd, parentSessionId, now, now);
-      getDatabase().prepare(`insert into agent_runs (id, session_id, user_message_id, prompt, status, started_at)
+        .run(
+          extraSessionId,
+          workspaceId,
+          `Additional child ${index}`,
+          started.session.cwd,
+          parentSessionId,
+          now,
+          now,
+        );
+      getDatabase()
+        .prepare(`insert into agent_runs (id, session_id, user_message_id, prompt, status, started_at)
         values (?, ?, ?, ?, 'completed', ?)`)
         .run(runId, extraSessionId, userMessageId, "additional evidence run", now);
       proposeMemoryForRun({
@@ -1539,8 +1735,12 @@ describe("PiSdkRuntime", () => {
         claim: "The child found a reusable cache key normalization rule.",
       });
     }
-    const boundedChildMemory = projectMemory.getProjectMemorySnapshot(workspaceId).memories.find((memory) => memory.id === childMemory.id);
-    expect(boundedChildMemory?.evidence.some((evidence) => evidence.sessionId === started.session.id)).toBe(false);
+    const boundedChildMemory = projectMemory
+      .getProjectMemorySnapshot(workspaceId)
+      .memories.find((memory) => memory.id === childMemory.id);
+    expect(
+      boundedChildMemory?.evidence.some((evidence) => evidence.sessionId === started.session.id),
+    ).toBe(false);
     mocks.setManagedProcesses([
       {
         id: "terminal-child",
@@ -2406,7 +2606,11 @@ describe("PiSdkRuntime", () => {
     const childSessionId = `session-${crypto.randomUUID()}`;
     const workspaceId = `workspace-${crypto.randomUUID()}`;
     insertSession(parentSessionId, workspaceId, join(userData, "missing.jsonl"), "Parent chat");
-    const completedRun = createAgentRun({ sessionId: parentSessionId, prompt: "completed before explicit close", userMessageId: "archive-user-message" });
+    const completedRun = createAgentRun({
+      sessionId: parentSessionId,
+      prompt: "completed before explicit close",
+      userMessageId: "archive-user-message",
+    });
     updateAgentRunStatus(completedRun.id, "completed");
     const closedMemory = proposeMemoryForRun({
       sessionId: parentSessionId,
@@ -2438,36 +2642,65 @@ describe("PiSdkRuntime", () => {
         .prepare("select count(*) as count from agent_sessions where id in (?, ?)")
         .get(parentSessionId, childSessionId),
     ).toEqual({ count: 0 });
-    expect(projectMemory.getProjectMemorySnapshot(workspaceId).memories.find((memory) => memory.id === closedMemory.id)?.status).toBe("active");
+    expect(
+      projectMemory
+        .getProjectMemorySnapshot(workspaceId)
+        .memories.find((memory) => memory.id === closedMemory.id)?.status,
+    ).toBe("active");
   });
 
   it("finalizes completed runs on explicit archive but does not treat runtime release as completion", async () => {
     const sessionId = `session-${crypto.randomUUID()}`;
     const workspaceId = `workspace-${crypto.randomUUID()}`;
     insertSession(sessionId, workspaceId, join(userData, "missing.jsonl"), "Archive sweep chat");
-    const archivedRun = createAgentRun({ sessionId, prompt: "completed before archive", userMessageId: "archive-sweep-message" });
+    const archivedRun = createAgentRun({
+      sessionId,
+      prompt: "completed before archive",
+      userMessageId: "archive-sweep-message",
+    });
     updateAgentRunStatus(archivedRun.id, "completed");
     const archivedMemory = proposeMemoryForRun({
-      sessionId, workspaceId, runId: archivedRun.id, userMessageId: "archive-sweep-message", cwd,
-      title: "Archive sweep memory", claim: "Explicit archive finalizes the completed memory candidate.",
+      sessionId,
+      workspaceId,
+      runId: archivedRun.id,
+      userMessageId: "archive-sweep-message",
+      cwd,
+      title: "Archive sweep memory",
+      claim: "Explicit archive finalizes the completed memory candidate.",
     });
     await setAgentSessionArchivedTree(sessionId, true);
-    expect(projectMemory.getProjectMemorySnapshot(workspaceId).memories.find((memory) => memory.id === archivedMemory.id)?.status).toBe("active");
+    expect(
+      projectMemory
+        .getProjectMemorySnapshot(workspaceId)
+        .memories.find((memory) => memory.id === archivedMemory.id)?.status,
+    ).toBe("active");
 
     const releaseSessionId = `session-${crypto.randomUUID()}`;
     const releaseWorkspaceId = workspaceId;
     const now = new Date().toISOString();
-    getDatabase().prepare(`insert into agent_sessions (id, workspace_id, title, cwd, status, created_at, updated_at)
+    getDatabase()
+      .prepare(`insert into agent_sessions (id, workspace_id, title, cwd, status, created_at, updated_at)
       values (?, ?, ?, ?, 'idle', ?, ?)`)
       .run(releaseSessionId, releaseWorkspaceId, "Released chat", cwd, now, now);
-    const releaseRun = createAgentRun({ sessionId: releaseSessionId, prompt: "not an explicit completion" });
+    const releaseRun = createAgentRun({
+      sessionId: releaseSessionId,
+      prompt: "not an explicit completion",
+    });
     updateAgentRunStatus(releaseRun.id, "running");
     const releasedMemory = proposeMemoryForRun({
-      sessionId: releaseSessionId, workspaceId: releaseWorkspaceId, runId: releaseRun.id, cwd,
-      title: "Release must not finalize", claim: "Runtime release alone does not signal run completion.",
+      sessionId: releaseSessionId,
+      workspaceId: releaseWorkspaceId,
+      runId: releaseRun.id,
+      cwd,
+      title: "Release must not finalize",
+      claim: "Runtime release alone does not signal run completion.",
     });
     await new PiSdkRuntime().releaseRuntime(releaseSessionId);
-    expect(projectMemory.getProjectMemorySnapshot(releaseWorkspaceId).memories.find((memory) => memory.id === releasedMemory.id)?.status).toBe("candidate");
+    expect(
+      projectMemory
+        .getProjectMemorySnapshot(releaseWorkspaceId)
+        .memories.find((memory) => memory.id === releasedMemory.id)?.status,
+    ).toBe("candidate");
   });
 
   it("queues a steer message into the live turn without opening a phantom run", async () => {
@@ -2535,13 +2768,21 @@ describe("PiSdkRuntime", () => {
           const activeRun = getActiveAgentRun(sessionId);
           if (!activeRun) throw new Error("expected active run");
           failedAttemptMemoryId = proposeMemoryForRun({
-            sessionId, workspaceId, runId: activeRun.id, cwd,
-            title: "Failed attempt memory", claim: "The attempted migration failed due to the unavailable endpoint.",
+            sessionId,
+            workspaceId,
+            runId: activeRun.id,
+            cwd,
+            title: "Failed attempt memory",
+            claim: "The attempted migration failed due to the unavailable endpoint.",
             category: "failed_attempt",
           }).id;
           ordinaryMemoryId = proposeMemoryForRun({
-            sessionId, workspaceId, runId: activeRun.id, cwd,
-            title: "Ordinary solution memory", claim: "The solution uses a cache to avoid repeated endpoint calls.",
+            sessionId,
+            workspaceId,
+            runId: activeRun.id,
+            cwd,
+            title: "Ordinary solution memory",
+            claim: "The solution uses a cache to avoid repeated endpoint calls.",
             category: "solution",
           }).id;
           mocks.emitPiEvent({ type: "message_start", message: { role: "assistant" } });
@@ -2703,25 +2944,31 @@ describe("PiSdkRuntime", () => {
     const abort = vi.fn(async () => {
       rejectPrompt?.(new Error("Aborted"));
     });
-    const prompt = vi.fn(
-      () => {
-        const activeRun = getActiveAgentRun(sessionId);
-        if (!activeRun) throw new Error("expected active run");
-        cancelledAttemptMemoryId = proposeMemoryForRun({
-          sessionId, workspaceId, runId: activeRun.id, cwd,
-          title: "Cancelled attempt memory", claim: "The cancelled attempt did not complete the remote sync.",
-          category: "failed_attempt",
-        }).id;
-        cancelledSolutionMemoryId = proposeMemoryForRun({
-          sessionId, workspaceId, runId: activeRun.id, cwd,
-          title: "Cancelled solution memory", claim: "The proposed sync solution needs another verification run.",
-          category: "solution",
-        }).id;
-        return new Promise<void>((_resolve, reject) => {
-          rejectPrompt = reject;
-        });
-      },
-    );
+    const prompt = vi.fn(() => {
+      const activeRun = getActiveAgentRun(sessionId);
+      if (!activeRun) throw new Error("expected active run");
+      cancelledAttemptMemoryId = proposeMemoryForRun({
+        sessionId,
+        workspaceId,
+        runId: activeRun.id,
+        cwd,
+        title: "Cancelled attempt memory",
+        claim: "The cancelled attempt did not complete the remote sync.",
+        category: "failed_attempt",
+      }).id;
+      cancelledSolutionMemoryId = proposeMemoryForRun({
+        sessionId,
+        workspaceId,
+        runId: activeRun.id,
+        cwd,
+        title: "Cancelled solution memory",
+        claim: "The proposed sync solution needs another verification run.",
+        category: "solution",
+      }).id;
+      return new Promise<void>((_resolve, reject) => {
+        rejectPrompt = reject;
+      });
+    });
     mocks.createAgentSession.mockImplementationOnce(async () => ({
       session: createMockPiSession({
         abort,
@@ -2767,8 +3014,12 @@ describe("PiSdkRuntime", () => {
     expect(events.map((event) => event.type)).not.toContain("run.failed");
     expect(events.map((event) => event.type)).not.toContain("runtime.error");
     const memories = projectMemory.getProjectMemorySnapshot(workspaceId).memories;
-    expect(memories.find((memory) => memory.id === cancelledAttemptMemoryId)?.status).toBe("active");
-    expect(memories.find((memory) => memory.id === cancelledSolutionMemoryId)?.status).toBe("candidate");
+    expect(memories.find((memory) => memory.id === cancelledAttemptMemoryId)?.status).toBe(
+      "active",
+    );
+    expect(memories.find((memory) => memory.id === cancelledSolutionMemoryId)?.status).toBe(
+      "candidate",
+    );
     expect(
       getDatabase()
         .prepare(

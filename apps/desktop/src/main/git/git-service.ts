@@ -107,7 +107,11 @@ export const GIT_MEMORY_CONTEXT_TIMEOUT_MS = 125;
 export const GIT_MEMORY_CONTEXT_MAX_CHANGED_PATHS = 64;
 const GIT_MEMORY_CONTEXT_STATUS_MAX_BUFFER = 256 * 1024;
 
-type GitMemoryContextRunner = (cwd: string, args: string[], options: RunGitOptions) => Promise<string>;
+type GitMemoryContextRunner = (
+  cwd: string,
+  args: string[],
+  options: RunGitOptions,
+) => Promise<string>;
 
 function parsePorcelainV2MemoryContext(output: string, maxPaths: number): GitMemoryContext {
   const result: GitMemoryContext = { changedPaths: [] };
@@ -174,10 +178,12 @@ export function createGitMemoryContextReader(
   return async (cwd) => {
     const controller = new AbortController();
     const command = Promise.resolve()
-      .then(() => runner(cwd, ["status", "--porcelain=v2", "-z", "--branch"], {
-        signal: controller.signal,
-        maxBuffer: GIT_MEMORY_CONTEXT_STATUS_MAX_BUFFER,
-      }))
+      .then(() =>
+        runner(cwd, ["status", "--porcelain=v2", "-z", "--branch"], {
+          signal: controller.signal,
+          maxBuffer: GIT_MEMORY_CONTEXT_STATUS_MAX_BUFFER,
+        }),
+      )
       .catch(() => "");
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {

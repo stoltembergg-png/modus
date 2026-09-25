@@ -170,8 +170,16 @@ describe("rollbackToUserMessage", () => {
         cwd: `root-${sessionId}`,
       },
     );
-    projectMemory.finalizeProjectMemoryRun({ sessionId, runId: second.runId, outcome: "completed" });
-    expect(getDatabase().prepare("select status from project_memory_records where id = ?").get(linkedMemory.id)).toEqual({ status: "active" });
+    projectMemory.finalizeProjectMemoryRun({
+      sessionId,
+      runId: second.runId,
+      outcome: "completed",
+    });
+    expect(
+      getDatabase()
+        .prepare("select status from project_memory_records where id = ?")
+        .get(linkedMemory.id),
+    ).toEqual({ status: "active" });
     insertCheckpoint(sessionId, first.runId, "auto");
     insertCheckpoint(sessionId, first.runId, "turn-end");
     const secondCheckpoint = insertCheckpoint(sessionId, second.runId, "auto");
@@ -185,12 +193,18 @@ describe("rollbackToUserMessage", () => {
     db.exec(`create trigger fail_rollback_run_delete before delete on agent_runs
       when old.session_id = '${sessionId}'
       begin select raise(abort, 'injected rollback deletion failure'); end`);
-    await expect(rollbackToUserMessage(runtime, {
-      sessionId,
-      userMessageId: second.userMessageId,
-    })).rejects.toThrow(/injected rollback deletion failure/);
-    expect(db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id)).toEqual({ status: "active" });
-    expect(db.prepare("select count(*) as count from agent_runs where session_id = ?").get(sessionId)).toEqual({ count: 3 });
+    await expect(
+      rollbackToUserMessage(runtime, {
+        sessionId,
+        userMessageId: second.userMessageId,
+      }),
+    ).rejects.toThrow(/injected rollback deletion failure/);
+    expect(
+      db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id),
+    ).toEqual({ status: "active" });
+    expect(
+      db.prepare("select count(*) as count from agent_runs where session_id = ?").get(sessionId),
+    ).toEqual({ count: 3 });
     db.exec("drop trigger fail_rollback_run_delete");
 
     const result = await rollbackToUserMessage(runtime, {
@@ -208,9 +222,17 @@ describe("rollbackToUserMessage", () => {
       checkpointId: secondCheckpoint,
       removedRuns: 2,
     });
-    expect(db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id)).toEqual({ status: "needs_review" });
-    projectMemory.finalizeProjectMemoryRun({ sessionId, runId: second.runId, outcome: "completed" });
-    expect(db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id)).toEqual({ status: "needs_review" });
+    expect(
+      db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id),
+    ).toEqual({ status: "needs_review" });
+    projectMemory.finalizeProjectMemoryRun({
+      sessionId,
+      runId: second.runId,
+      outcome: "completed",
+    });
+    expect(
+      db.prepare("select status from project_memory_records where id = ?").get(linkedMemory.id),
+    ).toEqual({ status: "needs_review" });
 
     // History: only the first turn's events/run survive.
     const events = listAgentEvents(sessionId).map((item) => item.event);

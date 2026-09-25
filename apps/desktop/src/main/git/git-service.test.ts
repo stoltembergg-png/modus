@@ -103,7 +103,9 @@ describe("git-service", () => {
     expect(metadata.branch).toBe(branch);
     expect(metadata.head).toBe(head);
     expect(metadata.head).toMatch(/^[0-9a-f]{40}$/);
-    expect(metadata.changedPaths).toEqual(expect.arrayContaining(["renamed.txt", "tracked.txt", "new-memory-context.txt"]));
+    expect(metadata.changedPaths).toEqual(
+      expect.arrayContaining(["renamed.txt", "tracked.txt", "new-memory-context.txt"]),
+    );
     expect(metadata.changedPaths.length).toBeLessThanOrEqual(64);
   });
 
@@ -130,10 +132,14 @@ describe("git-service", () => {
     const reader = createGitMemoryContextReader(async (_cwd, args, options) => {
       calls.push(args);
       return new Promise<string>((resolve) => {
-        options.signal?.addEventListener("abort", () => {
-          aborted = true;
-          resolve("");
-        }, { once: true });
+        options.signal?.addEventListener(
+          "abort",
+          () => {
+            aborted = true;
+            resolve("");
+          },
+          { once: true },
+        );
       });
     }, 35);
     const started = Date.now();
@@ -143,7 +149,9 @@ describe("git-service", () => {
     expect(calls).toEqual([["status", "--porcelain=v2", "-z", "--branch"]]);
     expect(aborted).toBe(true);
 
-    const broken = createGitMemoryContextReader(async () => { throw new Error("git failed"); }, 35);
+    const broken = createGitMemoryContextReader(async () => {
+      throw new Error("git failed");
+    }, 35);
     expect(await broken(repo)).toEqual({ changedPaths: [] });
 
     const plain = await mkdtemp(join(tmpdir(), "modus-memory-not-repo-"));
