@@ -1,10 +1,11 @@
 import { IconChevronRight } from "@tabler/icons-react";
-import { AnimatePresence, m, useReducedMotion } from "motion/react";
+import { m } from "motion/react";
 import { memo, type ReactNode, useEffect, useId, useState } from "react";
 import type { ModelInfo, PlanRef } from "../../../../shared/contracts";
 import { getToolUiMeta, type ToolSummaryMeta } from "../../../../shared/tools";
 import { CollapsibleMotion } from "../../components/ui/CollapsibleMotion";
 import { ShinyText } from "../../components/ui/ShinyText";
+import { ThinkingStates } from "../../components/ui/ThinkingStates";
 import { ThoughtLine } from "../../components/ui/ThoughtLine";
 import { cn } from "../../lib/cn";
 import { MessageBlock } from "./MessageBlock";
@@ -212,34 +213,13 @@ export function workFoldPhaseLabel(items: WorkFoldItem[]): string | undefined {
   return undefined;
 }
 
-/** Swap timing mirrors the app's ease-out-quint token (see app.css). */
-const PHASE_SWAP = { duration: 0.16, ease: [0.22, 1, 0.36, 1] as const };
-
 /**
- * Visual-only phase swap for the fold header. The accessible label is owned by
- * ThoughtLine's `role="status"`, which stays on a stable "Working…", so this
- * changing text is aria-hidden to keep assistive tech from chattering. Both the
- * outgoing and incoming labels share one grid cell, so the box is only ever as
- * wide as the wider of the two — no separate sizer, no horizontal overflow.
+ * Visual-only phase label for the fold header (Transitions.dev thinking-states).
+ * Accessible copy stays on ThoughtLine's stable "Working…" status; this line is
+ * aria-hidden so assistive tech doesn't chatter on every tool hop.
  */
 function PhaseSwapLabel({ label }: { label: string }) {
-  const reduce = useReducedMotion();
-  return (
-    <span aria-hidden="true" className="relative inline-grid overflow-hidden">
-      <AnimatePresence initial={false}>
-        <m.span
-          animate={{ opacity: 1, y: 0 }}
-          className="col-start-1 row-start-1 whitespace-nowrap"
-          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -5 }}
-          initial={reduce ? false : { opacity: 0, y: 5 }}
-          key={label}
-          transition={reduce ? { duration: 0 } : PHASE_SWAP}
-        >
-          {label}
-        </m.span>
-      </AnimatePresence>
-    </span>
-  );
+  return <ThinkingStates label={label} />;
 }
 
 function WorkActivityGroup({
@@ -387,6 +367,7 @@ export const WorkFold = memo(function WorkFold({
           fontSize={13}
           label="Working…"
           renderLabel={(text, working) => (working ? <PhaseSwapLabel label={phaseLabel} /> : text)}
+          shimmer={false}
           showTimer={!terminal}
           working={active}
         />
