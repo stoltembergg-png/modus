@@ -47,9 +47,10 @@ export const SIDEBAR_TRANSITION = { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } 
  * Nested blocks indent by exactly one rail (no magic pl-[30px]).
  */
 const SB_RAIL = "pointer-events-none flex w-5 shrink-0 items-center justify-center";
+/** Nav / project rows — normalized one step quieter (`text-xs`), matching sessions. */
 const SB_ROW =
-  "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-sm font-normal transition-colors";
-/** Session titles — one step quieter than nav (`text-sm`) via the shared ramp. */
+  "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-xs font-normal transition-colors";
+/** Session rows — same size as nav (`text-xs`); meta stays one step quieter. */
 const SB_SESSION =
   "flex h-[30px] w-full items-center gap-2 rounded-md pr-1 pl-2 text-xs font-normal transition-colors";
 /** Relative timestamps / meta on session rows. */
@@ -76,6 +77,7 @@ type SidebarProps = {
   onNewSession(): void;
   onNewWorkspaceSession(workspace: WorkspaceInfo): void;
   onPinSession(session: AgentSessionInfo, pinned: boolean): void;
+  onRenameSession?(id: string, title: string): void;
   onArchiveSession(session: AgentSessionInfo): void;
   onRestoreSession(session: AgentSessionInfo): void;
   onDeleteSession(session: AgentSessionInfo): void;
@@ -119,19 +121,35 @@ export function Sidebar({
   onOpenLimits,
   onWidthChange,
   canCreateSession,
+  onRenameSession,
 }: SidebarProps) {
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [pinnedExpanded, setPinnedExpanded] = useState(true);
   const projectIds = useMemo(
     () => new Set(workspaces.map((workspace) => workspace.id)),
     [workspaces],
   );
   const sessionsByWorkspace = groupSessionsByWorkspace(agentSessions);
+  // Split inbox: pinned first, then unpinned
+  const pinnedSessions = useMemo(
+    () =>
+      agentSessions.filter(
+        (session) =>
+          !session.parentSessionId &&
+          !session.archivedAt &&
+          session.pinnedAt &&
+          (session.workspaceId === CHATS_WORKSPACE_ID || !projectIds.has(session.workspaceId)),
+      ),
+    [agentSessions, projectIds],
+  );
   const inboxSessions = useMemo(
     () =>
       agentSessions.filter(
         (session) =>
           !session.parentSessionId &&
+          !session.archivedAt &&
+          !session.pinnedAt &&
           (session.workspaceId === CHATS_WORKSPACE_ID || !projectIds.has(session.workspaceId)),
       ),
     [agentSessions, projectIds],
@@ -233,6 +251,54 @@ export function Sidebar({
           {...(fadeBottom ? { "data-fade-bottom": "" } : {})}
           ref={scrollFadeRef}
         >
+          {/* 📌 Pinned section — global, above Projects and Chats */}
+          {pinnedSessions.length > 0 && (
+            <>
+              <SectionHeader
+                expanded={pinnedExpanded}
+                onToggle={() => setPinnedExpanded((expanded) => !expanded)}
+              >
+                📌 Pinned
+              </SectionHeader>
+
+              <CollapsibleMotion open={pinnedExpanded} preset="default">
+                <AnimatePresence initial={false}>
+                  {pinnedSessions.map((session) => (
+                    <ScrollReveal
+                      key={session.id}
+                      offsetY={8}
+                      scrollContainerRef={scrollContainerRef}
+                      blurStrength={3}
+                    >
+                      <SessionRow
+                        activity={activityBySession[session.id]}
+                        isActive={activeSessionId === session.id}
+                        pinned={true}
+                        onSelect={() => onSelectSession(session)}
+                        onPin={(event) => {
+                          event.stopPropagation();
+                          onPinSession(session, false);
+                        }}
+                        onRename={(title) => onRenameSession?.(session.id, title)}
+                        onArchive={(event) => {
+                          event.stopPropagation();
+                          onArchiveSession(session);
+                        }}
+                        onDelete={(event) => {
+                          event.stopPropagation();
+                          onDeleteSession(session);
+                        }}
+                        title={session.title}
+                        updatedAt={session.updatedAt}
+                      />
+                    </ScrollReveal>
+                  ))}
+                </AnimatePresence>
+              </CollapsibleMotion>
+              <div className="mt-1" />
+            </>
+          )}
+
           <SectionHeader
             expanded={projectsExpanded}
             onToggle={() => setProjectsExpanded((expanded) => !expanded)}
@@ -270,6 +336,7 @@ export function Sidebar({
                       onListArchivedSessions={onListArchivedSessions}
                       onNewSession={() => onNewWorkspaceSession(workspace)}
                       onPinSession={onPinSession}
+                      onRenameSession={(id, title) => onRenameSession?.(id, title)}
                       onRestoreSession={onRestoreSession}
                       onSelectSession={onSelectSession}
                       activeSessionId={activeSessionId}
@@ -337,6 +404,7 @@ export function Sidebar({
                       event.stopPropagation();
                       onPinSession(session, !session.pinnedAt);
                     }}
+                    onRename={(title) => onRenameSession?.(session.id, title)}
                     onSelect={() => onSelectSession(session)}
                     pinned={Boolean(session.pinnedAt)}
                     title={session.title}
@@ -385,6 +453,7 @@ function WorkspaceItem({
   onSelectSession,
   onNewSession,
   onPinSession,
+  onRenameSession,
   onArchiveSession,
   onRestoreSession,
   onDeleteSession,
@@ -407,6 +476,7 @@ function WorkspaceItem({
   onSelectSession(session: AgentSessionInfo): void;
   onNewSession(): void;
   onPinSession(session: AgentSessionInfo, pinned: boolean): void;
+  onRenameSession(id: string, title: string): void;
   onArchiveSession(session: AgentSessionInfo): void;
   onRestoreSession(session: AgentSessionInfo): void;
   onDeleteSession(session: AgentSessionInfo): void;
@@ -500,6 +570,7 @@ function WorkspaceItem({
                   event.stopPropagation();
                   onPinSession(session, !session.pinnedAt);
                 }}
+                onRename={(title) => onRenameSession(session.id, title)}
                 onSelect={() => onSelectSession(session)}
                 pinned={Boolean(session.pinnedAt)}
                 title={session.title}
@@ -556,6 +627,7 @@ function SessionRow({
   activity,
   onSelect,
   onPin,
+  onRename,
   onArchive,
   onDelete,
 }: {
@@ -566,17 +638,46 @@ function SessionRow({
   activity: SessionActivity | undefined;
   onSelect(): void;
   onPin(event: MouseEvent<HTMLButtonElement>): void;
+  onRename(title: string): void;
   onArchive(event: MouseEvent<HTMLButtonElement>): void;
   onDelete(event: MouseEvent<HTMLButtonElement>): void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [displayTitle, setDisplayTitle] = useState(title);
+  const [newTitle, setNewTitle] = useState(title);
+  const renameCommittedRef = useRef(false);
+
+  useEffect(() => setDisplayTitle(title), [title]);
   useEffect(() => {
-    if (!confirmDelete) {
-      return;
-    }
+    if (!confirmDelete) return;
     const timeout = window.setTimeout(() => setConfirmDelete(false), 2500);
     return () => window.clearTimeout(timeout);
   }, [confirmDelete]);
+
+  const startRename = (event: MouseEvent<HTMLButtonElement>): void => {
+    event.stopPropagation();
+    renameCommittedRef.current = false;
+    setIsRenaming(true);
+    setNewTitle(displayTitle);
+  };
+
+  const commitRename = (): void => {
+    if (renameCommittedRef.current) return;
+    renameCommittedRef.current = true;
+    const nextTitle = newTitle.trim();
+    if (nextTitle && nextTitle !== displayTitle) {
+      setDisplayTitle(nextTitle);
+      onRename(nextTitle);
+    }
+    setIsRenaming(false);
+  };
+
+  const cancelRename = (): void => {
+    renameCommittedRef.current = true;
+    setIsRenaming(false);
+    setNewTitle(displayTitle);
+  };
 
   return (
     <m.div
@@ -597,14 +698,37 @@ function SessionRow({
       <span className={SB_RAIL}>
         <SessionStatusDot activity={activity} />
       </span>
-      <button
-        className="flex min-w-0 flex-1 items-center pr-1 text-left"
-        onClick={onSelect}
-        title="Open"
-        type="button"
-      >
-        <span className="min-w-0 flex-1 truncate-fade">{title}</span>
-      </button>
+      {isRenaming ? (
+        <input
+          // biome-ignore lint/a11y/noAutofocus: renaming starts a focused edit by design
+          autoFocus
+          className="min-w-0 flex-1 rounded-md border border-composer-border bg-elevated px-1.5 py-1 text-fg text-xs outline-none focus:border-accent"
+          onBlur={commitRename}
+          onChange={(event) => setNewTitle(event.currentTarget.value)}
+          onClick={(event) => event.stopPropagation()}
+          onFocusCapture={(event) => event.currentTarget.select()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitRename();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              cancelRename();
+            }
+          }}
+          type="text"
+          value={newTitle}
+        />
+      ) : (
+        <button
+          className="flex min-w-0 flex-1 items-center pr-1 text-left"
+          onClick={onSelect}
+          title="Open"
+          type="button"
+        >
+          <span className="min-w-0 flex-1 truncate-fade">{displayTitle}</span>
+        </button>
+      )}
       <span className="ml-0.5 hidden shrink-0 items-center group-hover:flex group-focus-within:flex">
         <span className={SB_SESSION_META}>{formatRelativeTime(updatedAt)}</span>
         <IconButton label={pinned ? "Unpin chat" : "Pin chat"} onClick={onPin}>
@@ -613,6 +737,9 @@ function SessionRow({
           ) : (
             <IconPin size={SB_ACTION} stroke={SB_ACTION_STROKE} />
           )}
+        </IconButton>
+        <IconButton label="Rename session" onClick={startRename}>
+          <IconPencil size={SB_ACTION} stroke={SB_ACTION_STROKE} />
         </IconButton>
         <IconButton label="Archive" onClick={onArchive}>
           <IconArchive size={SB_ACTION} stroke={SB_ACTION_STROKE} />
@@ -823,7 +950,7 @@ function RenameInput({
     <input
       // biome-ignore lint/a11y/noAutofocus: rename starts a focused edit by design
       autoFocus
-      className="min-w-0 flex-1 rounded-md border border-composer-border bg-elevated px-1.5 py-1 text-fg text-sm outline-none focus:border-accent"
+      className="min-w-0 flex-1 rounded-md border border-composer-border bg-elevated px-1.5 py-1 text-fg text-xs outline-none focus:border-accent"
       defaultValue={initialValue}
       onBlur={commit}
       onClick={(event) => event.stopPropagation()}

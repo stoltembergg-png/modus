@@ -171,6 +171,8 @@ export type ModusApi = {
      */
     rollback(input: { sessionId: string; userMessageId: string }): Promise<AgentRollbackResult>;
     pin(input: { id: string; pinned: boolean }): Promise<AgentSessionInfo | undefined>;
+    /** Rename a chat session; returns the updated session. */
+    rename(input: { id: string; title: string }): Promise<AgentSessionInfo | undefined>;
     archive(sessionId: string): Promise<void>;
     restore(sessionId: string): Promise<void>;
     delete(sessionId: string): Promise<void>;

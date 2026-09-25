@@ -44,6 +44,7 @@ const api: ModusApi = {
     abort: (sessionId) => ipcRenderer.invoke("agent:abort", sessionId),
     rollback: (input) => ipcRenderer.invoke("agent:rollback", input),
     pin: (input) => ipcRenderer.invoke("agent:pin", input),
+    rename: (input) => ipcRenderer.invoke("agent:rename", input),
     archive: (sessionId) => ipcRenderer.invoke("agent:archive", sessionId),
     restore: (sessionId) => ipcRenderer.invoke("agent:restore", sessionId),
     delete: (sessionId) => ipcRenderer.invoke("agent:delete", sessionId),
