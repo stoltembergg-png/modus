@@ -558,6 +558,19 @@ export function App() {
     await refreshSessions();
   }
 
+  async function renameSession(sessionId: string, title: string): Promise<void> {
+    try {
+      const updated = await window.modus.agent.rename({ id: sessionId, title });
+      if (updated) {
+        setAgentSessions((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item)),
+        );
+      }
+    } catch (error) {
+      setSessionCreateError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   async function archiveSession(session: AgentSessionInfo): Promise<void> {
     try {
       await window.modus.agent.archive(session.id);
@@ -909,6 +922,7 @@ export function App() {
                         }
                         onPinProject={(id, pinned) => void pinProject(id, pinned)}
                         onPinSession={(session, pinned) => void pinSession(session, pinned)}
+                        onRenameSession={(id, title) => void renameSession(id, title)}
                         onRenameProject={(id, displayName) => void renameProject(id, displayName)}
                         onArchiveProjectChats={(id) => void archiveProjectChats(id)}
                         onDeleteProjectChats={(id) => void deleteProjectChats(id)}

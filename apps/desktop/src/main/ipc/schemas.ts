@@ -46,6 +46,11 @@ export const sessionPinSchema = z.object({
   pinned: z.boolean(),
 });
 
+export const sessionTitleSchema = z.object({
+  id: nonEmptyString,
+  title: nonEmptyString.max(200),
+});
+
 /** ~10 MB of raw image bytes once base64-decoded. */
 const MAX_ATTACHMENT_BASE64_CHARS = 14_000_000;
 

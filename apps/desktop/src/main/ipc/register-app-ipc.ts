@@ -19,6 +19,7 @@ import {
   listAgentSessions,
   listArchivedAgentSessions,
   setAgentSessionPinned,
+  updateAgentSessionTitle,
   updateAgentSessionWorktree,
 } from "../agent/agent-store";
 import {
@@ -232,6 +233,7 @@ import {
   rulesSaveAgentsSchema,
   sessionIdSchema,
   sessionPinSchema,
+  sessionTitleSchema,
   setProviderModelsEnabledSchema,
   skillsCreateSchema,
   skillsGetSchema,
@@ -491,6 +493,12 @@ export function registerAppIpc({
     assertTrustedSender(event);
     const parsed = parseIpcInput(sessionPinSchema, input, IPC_CHANNELS.agentPin);
     return setAgentSessionPinned(parsed.id, parsed.pinned);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.agentRename, (event, input) => {
+    assertTrustedSender(event);
+    const parsed = parseIpcInput(sessionTitleSchema, input, IPC_CHANNELS.agentRename);
+    return updateAgentSessionTitle(parsed.id, parsed.title);
   });
 
   ipcMain.handle(IPC_CHANNELS.agentArchive, async (event, sessionId: string) => {
