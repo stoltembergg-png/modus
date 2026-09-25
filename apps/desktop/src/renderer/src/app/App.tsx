@@ -129,6 +129,7 @@ export function App() {
   const [model, setModel] = useState("");
   const [modelSettings, setModelSettings] = useState<ModelSettingsState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsInitialSection, setSettingsInitialSection] = useState<"limits" | undefined>();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -855,6 +856,9 @@ export function App() {
                   {settingsOpen ? (
                     <Suspense fallback={<ModusLoadingFallback />}>
                       <SettingsPanel
+                        {...(settingsInitialSection
+                          ? { initialSection: settingsInitialSection }
+                          : {})}
                         onClose={() => setSettingsOpen(false)}
                         onRefresh={refreshModelSettings}
                         onRefreshCatalog={refreshModelCatalog}
@@ -885,7 +889,14 @@ export function App() {
                         onNewSession={() => openNewChat()}
                         onNewWorkspaceSession={(workspace) => openNewChat(workspace)}
                         onOpenWorkspace={() => void openWorkspace()}
-                        onOpenSettings={() => setSettingsOpen(true)}
+                        onOpenSettings={() => {
+                          setSettingsInitialSection(undefined);
+                          setSettingsOpen(true);
+                        }}
+                        onOpenLimits={() => {
+                          setSettingsInitialSection("limits");
+                          setSettingsOpen(true);
+                        }}
                         onSelectSession={selectSession}
                         onWidthChange={setSidebarWidth}
                         activeSessionId={activeSessionId}
@@ -942,7 +953,10 @@ export function App() {
                                 branch={branch}
                                 environmentStats={environmentStats}
                                 inspectorOpen={responsiveInspectorOpen}
-                                onOpenSettings={() => setSettingsOpen(true)}
+                                onOpenSettings={() => {
+                                  setSettingsInitialSection(undefined);
+                                  setSettingsOpen(true);
+                                }}
                                 onToggleInspector={() => setInspectorOpen((open) => !open)}
                               />
                             </div>
@@ -1117,7 +1131,10 @@ export function App() {
                             }
                             onOpenChange={setInspectorOpen}
                             onOpenReview={openReview}
-                            onOpenSettings={() => setSettingsOpen(true)}
+                            onOpenSettings={() => {
+                              setSettingsInitialSection(undefined);
+                              setSettingsOpen(true);
+                            }}
                             onOpenSubagent={openSubagent}
                             onPlanUpdated={rememberActivePlan}
                             onSelectSubagent={setSelectedSubagentId}
